@@ -9,18 +9,12 @@ rows), which is the point of the source protocols.
 
 | File | What it covers |
 | --- | --- |
-| `test_equivalence.py` | The SOLID refactor changed no computed value |
 | `test_domain.py` | Pure transforms: formatting, nutrition, gamification, plan, health, config |
-| `test_pipeline.py` | Full offline build, HTML assembly, failure reporting |
-| `test_regressions.py` | Bugs found while refactoring |
+| `test_pipeline.py` | Full offline build in both bulk and race mode, HTML assembly, failure reporting, the shipped data files |
+| `test_bulk.py` | The bulk view and the eating target |
+| `test_expenses.py` | Spending totals, categories and the paycheck balance |
+| `test_regressions.py` | Bugs found along the way |
 
-## `legacy_reference.py`
-
-A byte-identical copy of `dashboard.py` as it was before the refactor. It is
-**not live code** — nothing outside `test_equivalence.py` imports it. It exists
-so the refactor can be checked against the real previous implementation rather
-than against my description of it: both are driven by the same fake API and the
-same data files, and every key the old build produced is compared field by field.
-
-Delete it once you no longer care about proving equivalence with the pre-refactor
-build; `test_equivalence.py` goes with it.
+`test_pipeline.py` pins a `RACE_SETTINGS` of its own. The shipped
+`DEFAULT_SETTINGS` follow whatever the athlete is doing now, and race mode has
+to keep working for the next race without depending on that.

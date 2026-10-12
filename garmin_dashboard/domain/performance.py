@@ -9,7 +9,10 @@ from .formatting import fmt_pace
 # runners. It is the standard way to project one race distance from another.
 RIEGEL = 1.06
 
-PR_DISTANCES_KM = {"1K": 1.0, "Mile": 1.609, "5K": 5.0, "10K": 10.0, "15K": 15.0, "Half Marathon": 21.0975}
+PR_DISTANCES_KM = {
+    "1K": 1.0, "Mile": 1.609, "5K": 5.0, "10K": 10.0,
+    "Half Marathon": 21.0975, "Marathon": 42.195,
+}
 
 
 def _seconds(display: str | None) -> float | None:

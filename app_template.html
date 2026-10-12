@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Training App</title>
+<title>Bulk Mode</title>
 
 <!-- PWA / Add to Home Screen -->
 <link rel="manifest" href="manifest.json">
@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="apple-mobile-web-app-title" content="Bulk">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
@@ -294,21 +294,47 @@ __RUNNING_TAB_STYLE__
   .placeholder .big{ font-size:2rem; margin-bottom:10px; }
   .placeholder p{ font-size:0.85rem; max-width:420px; margin:6px auto; color:var(--text-faint); }
 
-  /* ---- Opportunity cost (gambling tab): a spread of items, not just one ---- */
-  .opp-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
-  .opp-card{
-    background:var(--panel-2); border:1px solid var(--border); border-radius:12px;
-    overflow:hidden; display:flex; flex-direction:column;
+  /* ---- Bulk ---- */
+  .bulk-hero{
+    background:linear-gradient(135deg, rgba(57,255,143,0.10), var(--panel) 62%);
+    border:1px solid rgba(57,255,143,0.28); border-radius:16px; padding:20px 22px; margin-bottom:16px;
   }
-  .opp-card-image{ aspect-ratio:4/3; overflow:hidden; background:var(--panel); }
-  .opp-card-image img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .opp-card-body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:2px; min-width:0; }
-  .opp-card-count{
-    font-size:1.15rem; font-weight:800; color:var(--rank-fair); line-height:1.15;
-    font-variant-numeric:tabular-nums; display:flex; flex-wrap:wrap; align-items:baseline; gap:5px;
+  .bulk-hero.link{ cursor:pointer; }
+  .bulk-hero.link:hover{ border-color:rgba(57,255,143,0.55); }
+  .bulk-hero .kicker{ font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--neon); font-weight:800; }
+  .bulk-hero .big{ font-size:2.1rem; font-weight:800; line-height:1.1; margin:6px 0 4px; }
+  .bulk-hero .big .u{ font-size:0.9rem; color:var(--text-dim); font-weight:600; margin-left:8px; }
+  .bulk-hero .line{ font-size:0.84rem; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .bulk-hero .stat-grid{ margin-top:14px; }
+  /* A plain progress bar with labelled ends; the tick marks a second quantity
+     on the same scale (share of the pay period gone, against share spent). */
+  .meter{ height:10px; border-radius:5px; background:#1b212c; overflow:hidden; margin:12px 0 6px; position:relative; }
+  .meter > i{ display:block; height:100%; border-radius:5px; background:var(--neon); }
+  .meter-tick{ position:absolute; top:0; bottom:0; width:2px; background:var(--text); }
+  .meter-ends{ display:flex; justify-content:space-between; gap:8px; font-size:0.7rem; color:var(--text-faint); font-variant-numeric:tabular-nums; }
+  .week-strip{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
+  .week-day{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+    padding:8px 3px; text-align:center; min-width:0;
   }
-  .opp-card-unit{ font-size:0.76rem; font-weight:500; color:var(--text-dim); }
-  .opp-card-price{ font-size:0.72rem; color:var(--text-faint); font-variant-numeric:tabular-nums; }
+  .week-day .wd{ font-size:0.64rem; color:var(--text-faint); text-transform:uppercase; }
+  .week-day .ws{ font-size:0.95rem; margin-top:4px; line-height:1; }
+  .week-day .wn{ font-size:0.64rem; font-weight:700; margin-top:5px; overflow-wrap:anywhere; line-height:1.25; }
+  .week-day.rest .wn{ color:var(--text-faint); font-weight:500; }
+  .week-day.done{ border-color:rgba(57,255,143,0.55); background:rgba(57,255,143,0.10); }
+  .week-day.missed{ border-color:rgba(255,107,122,0.5); }
+  .week-day.today{ box-shadow:0 0 0 1px var(--neon); }
+
+  /* Number tiles with no explanatory paragraph can sit two to a row on a
+     phone; the shared stat-grid minimum is sized for tiles that carry prose. */
+  .bulk-hero .stat-grid, #bulkContent .stat-grid, #expensesContent .stat-grid{
+    grid-template-columns:repeat(auto-fit, minmax(128px,1fr));
+  }
+
+  /* ---- Expenses ---- */
+  .cat-row{ display:grid; grid-template-columns:104px minmax(0,1fr) 96px; gap:10px; align-items:center; margin-bottom:9px; font-size:0.8rem; }
+  .cat-row .cn{ text-transform:capitalize; color:var(--text-dim); overflow-wrap:anywhere; }
+  .cat-row .cv{ text-align:right; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
 
   /* ---- Build health ---- */
   .health-banner{
@@ -396,8 +422,10 @@ __RUNNING_TAB_STYLE__
   .comp-list{ flex:1 1 200px; min-width:0; }
   .comp-row{ display:grid; grid-template-columns:76px minmax(0,1fr) 30px; gap:8px; align-items:center; margin-bottom:6px; font-size:0.75rem; }
   .comp-row .cn{ color:var(--text-faint); text-transform:capitalize; min-width:0; overflow-wrap:anywhere; }
-  .comp-track{ height:6px; border-radius:3px; background:#1b212c; overflow:hidden; min-width:0; }
-  .comp-fill{ height:100%; border-radius:3px; }
+  /* Both are <span>s. display:block is what makes them bars at all: an inline
+     element ignores width and height, so without it every fill is 0x0. */
+  .comp-track{ display:block; height:6px; border-radius:3px; background:#1b212c; overflow:hidden; min-width:0; }
+  .comp-fill{ display:block; height:100%; border-radius:3px; }
   .comp-row .cv{ text-align:right; font-weight:700; }
   .comp-row.na .cv{ color:var(--text-faint); font-weight:400; }
   .comp-detail{ font-size:0.68rem; color:var(--text-faint); grid-column:2 / -1; margin:-3px 0 6px; min-width:0; overflow-wrap:anywhere; }
@@ -536,14 +564,15 @@ __RUNNING_TAB_STYLE__
 
 <div class="tabbar" id="tabbar">
   <button class="tabbtn" data-tab="overview">🏠 Overview</button>
-  <button class="tabbtn" data-tab="analysis">📊 Analysis</button>
+  <button class="tabbtn" data-tab="bulk">💪 Bulk</button>
   <button class="tabbtn" data-tab="workout">📋 Workout</button>
-  <button class="tabbtn" data-tab="training">💪 Training</button>
-  <button class="tabbtn" data-tab="running">🏃 Running</button>
-  <button class="tabbtn" data-tab="sleep">😴 Sleep</button>
-  <button class="tabbtn" data-tab="nutrition">🍽️ Nutrition</button>
+  <button class="tabbtn" data-tab="training">🏋️ Training</button>
+  <button class="tabbtn" data-tab="nutrition">🍽️ Food</button>
   <button class="tabbtn" data-tab="body">⚖️ Body</button>
-  <button class="tabbtn" data-tab="gambling">🎰 Gambling</button>
+  <button class="tabbtn" data-tab="sleep">😴 Sleep</button>
+  <button class="tabbtn" data-tab="running">🏃 Running</button>
+  <button class="tabbtn" data-tab="analysis">📊 Analysis</button>
+  <button class="tabbtn" data-tab="expenses">💸 Expenses</button>
 </div>
 
 <div class="health-banner" id="healthBanner"></div>
@@ -551,6 +580,11 @@ __RUNNING_TAB_STYLE__
 <!-- ===================== OVERVIEW TAB ===================== -->
 <div class="tab-panel" id="tab-overview">
   <div id="overviewContent"></div>
+</div>
+
+<!-- ===================== BULK TAB ===================== -->
+<div class="tab-panel" id="tab-bulk">
+  <div id="bulkContent"></div>
 </div>
 
 <!-- ===================== ANALYSIS TAB ===================== -->
@@ -709,9 +743,9 @@ __RUNNING_TAB_CONTENT__
   <div id="bodyModules"></div>
 </div>
 
-<!-- ===================== GAMBLING TAB ===================== -->
-<div class="tab-panel" id="tab-gambling">
-  <div id="gamblingContent"></div>
+<!-- ===================== EXPENSES TAB ===================== -->
+<div class="tab-panel" id="tab-expenses">
+  <div id="expensesContent"></div>
 </div>
 
 <footer id="appFooter"></footer>
@@ -738,8 +772,16 @@ function isValidIsoDate(d){
 }
 
 // ---- Tabs ----
+// The Bulk tab exists only while a bulk is configured and the Running tab only
+// while a race is booked, so the bar is trimmed before anything reads it.
+if(!DATA.bulk) document.querySelector('.tabbtn[data-tab="bulk"]').remove();
+if(!DATA.race) document.querySelector('.tabbtn[data-tab="running"]').remove();
 const tabButtons = document.querySelectorAll('.tabbtn');
+const TAB_NAMES = Array.from(tabButtons).map(b => b.dataset.tab);
 function showTab(name){
+  // An old bookmark or a card pointing at a tab this build doesn't have lands
+  // on the overview instead of a blank page.
+  if(!TAB_NAMES.includes(name)) name = 'overview';
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   tabButtons.forEach(b => b.classList.remove('active'));
   el('tab-' + name).classList.add('active');
@@ -755,7 +797,7 @@ tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)
 
 const ICONS = {gym:'🏋️', run:'🏃', padel:'🏓', football:'⚽', hike:'🥾', tennis:'🎾', basketball:'🏀', bike:'🚴', swim:'🏊', walk:'🚶', yoga:'🧘', sup:'🛶', volleyball:'🏐', other:'✳️'};
 
-showTab(['overview','analysis','workout','training','running','sleep','nutrition','body','gambling'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview');
+showTab(location.hash.slice(1));
 
 // ===================== BUILD HEALTH =====================
 // A build that lost some of its Garmin data still deploys — silently, before
@@ -808,6 +850,48 @@ function rankOf(score){
 }
 function rankColour(rank){ return 'var(--rank-' + (rank || 'fair') + ')'; }
 function scoreColour(v){ return rankColour(rankOf(v)); }
+// Thousands separators, so 55500 reads as 55,500.
+function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
+function fmtSigned(n, digits){ return (n > 0 ? '+' : '') + Number(n).toFixed(digits == null ? 1 : digits); }
+function kpiTile(label, value, unit, sub, colour){
+  return '<div class="stat-tile"><div class="lbl">' + label + '</div>' +
+    '<div class="val"' + (colour ? ' style="color:' + colour + '"' : '') + '>' + value +
+    (unit ? '<span class="u">' + unit + '</span>' : '') + '</div>' +
+    (sub ? '<div class="delta">' + sub + '</div>' : '') + '</div>';
+}
+function meterHtml(pct, colour, tickPct){
+  return '<div class="meter"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%' +
+    (colour ? ';background:' + colour : '') + '"></i>' +
+    (tickPct != null ? '<span class="meter-tick" style="left:calc(' + Math.max(0, Math.min(100, tickPct)) + '% - 1px)"></span>' : '') +
+    '</div>';
+}
+// The one bulk headline, shared by the Overview and the Bulk tab so both
+// always say the same thing.
+function bulkHeroHtml(bk, asLink){
+  const w = bk.weight;
+  const haveStart = w && !w.baseline_is_stale;
+  let big, line;
+  if(haveStart){
+    big = fmtSigned(w.gained_kg, 1) + ' kg<span class="u">of +' + w.target_gain_kg + ' kg</span>';
+    line = w.start_kg + ' kg → <b style="color:var(--text)">' + w.current_kg + ' kg</b> → ' + w.target_kg + ' kg' +
+      (w.rate_kg_per_week != null ? ' · ' + fmtSigned(w.rate_kg_per_week, 2) + ' kg a week' : '');
+  } else {
+    big = 'Weigh in<span class="u">to set the start line</span>';
+    line = w
+      ? 'Last scan was ' + w.current_kg + ' kg on ' + fmtDate(w.current_date) + ', before the bulk began.'
+      : 'No body scan on record yet.';
+  }
+  const kicker = bk.finished ? 'Winter bulk · finished'
+    : bk.started ? 'Winter bulk · day ' + bk.day_number + ' of ' + bk.total_days
+    : 'Winter bulk · starts ' + fmtDate(bk.start);
+  return '<div class="bulk-hero' + (asLink ? ' link" data-goto="bulk' : '') + '">' +
+    '<div class="kicker">' + kicker + '</div>' +
+    '<div class="big">' + big + '</div>' +
+    '<div class="line">' + line + '</div>' +
+    meterHtml(bk.pct_elapsed) +
+    '<div class="meter-ends"><span>' + fmtDate(bk.start) + '</span><span>' + bk.weeks_left + ' weeks left</span><span>' + fmtDate(bk.end) + '</span></div>';
+}
+
 function section(title, desc, body){
   return '<div class="section"><h2>' + title + '</h2>' +
     (desc ? '<div class="desc">' + desc + '</div>' : '') + body + '</div>';
@@ -823,7 +907,23 @@ function section(title, desc, body){
   if(!ov || !wrap) return;
   let html = '';
 
-  // Today's call leads: the one thing you open the app to find out.
+  // In a bulk the goal leads, with the three numbers that decide it today.
+  const bk = DATA.bulk, et = DATA.eating_target;
+  if(bk){
+    const tiles = [];
+    if(et){
+      tiles.push(et.remaining_kcal > 0
+        ? kpiTile('Left to eat today', fmtNum(et.remaining_kcal), 'kcal', fmtNum(et.eaten_today_kcal) + ' of ' + fmtNum(et.daily_target_kcal))
+        : kpiTile('Eating target', 'Hit', '', fmtNum(et.eaten_today_kcal) + ' of ' + fmtNum(et.daily_target_kcal) + ' kcal', 'var(--neon)'));
+      if(et.protein_target_g) tiles.push(kpiTile('Protein', et.protein_today_g, 'g', 'of ' + et.protein_target_g + 'g'));
+    }
+    if(bk.lifting) tiles.push(kpiTile('Lifting this week', bk.lifting.done + ' / ' + bk.lifting.planned, '', 'sessions done'));
+    if(bk.creatine) tiles.push(kpiTile('Creatine', 'Day ' + bk.creatine.day, '', bk.creatine.saturated ? 'fully loaded' : bk.creatine.pct + '% loaded'));
+    html += bulkHeroHtml(bk, true) +
+      (tiles.length ? '<div class="stat-grid">' + tiles.join('') + '</div>' : '') + '</div>';
+  }
+
+  // Today's call: the one thing you open the app to find out.
   const call = DATA.todays_call, rd = DATA.readiness;
   if(call && rd){
     let body = '<div class="readiness-wrap">' +
@@ -870,7 +970,7 @@ function section(title, desc, body){
     html += '<div class="section"><h2>Today</h2><div class="ov-today">';
     if(plan) html += '<span>Planned: <b>' + plan.name + '</b> · ' + plan.exercises.length + ' exercises</span>';
     if(t.burn_kcal != null) html += '<span>Burned so far: <b>' + Math.round(t.burn_kcal) + '</b> kcal</span>';
-    html += '<span>Eaten: <b>' + (t.intake_kcal || 0) + '</b> kcal</span>';
+    html += '<span>Eaten: <b>' + (t.intake_kcal || 0) + '</b>' + (t.kcal_target ? ' / ' + t.kcal_target : '') + ' kcal</span>';
     html += '<span>Protein: <b>' + (t.protein_g || 0) + '</b>g / ' + (t.protein_target_g || '—') + 'g</span>';
     html += '</div></div>';
   }
@@ -878,7 +978,7 @@ function section(title, desc, body){
   if((ov.priorities||[]).length){
     html += '<div class="section"><h2>Needs attention</h2>' +
       '<div class="desc">The ' + Math.min(ov.priorities.length, ov.priority_count) + ' of ' + ov.priority_count +
-      ' open flags worth acting on first. Full reasoning on the Analysis and Body tabs.</div>' +
+      ' open flags worth acting on first. Full reasoning on the ' + (DATA.bulk ? 'Bulk, ' : '') + 'Analysis and Body tabs.</div>' +
       ov.priorities.map(p => findingHtml({severity:p.severity, rank:p.rank, headline:p.title, detail:p.detail})).join('') +
       '</div>';
   }
@@ -918,9 +1018,178 @@ function section(title, desc, body){
   }
 
   wrap.innerHTML = html;
-  wrap.querySelectorAll('.ov-card').forEach(btn => {
+  wrap.querySelectorAll('.ov-card, .bulk-hero.link').forEach(btn => {
     btn.addEventListener('click', () => showTab(btn.dataset.goto));
   });
+})();
+
+// ===================== BULK TAB =====================
+// The goal the whole app is pointed at: is weight arriving at the right speed,
+// is enough being eaten, is the lifting getting done. Findings lead, because
+// they are the part that asks for something.
+(function(){
+  const bk = DATA.bulk;
+  const wrap = el('bulkContent');
+  if(!bk || !wrap) return;
+  const et = DATA.eating_target;
+  const w = bk.weight, intake = bk.intake, cr = bk.creatine, lift = bk.lifting;
+  let html = bulkHeroHtml(bk, false) + '</div>';
+
+  if((bk.findings||[]).length){
+    html += section('What the numbers say', '',
+      bk.findings.map(f => findingHtml({severity:f.severity, rank:f.rank, headline:f.title, detail:f.detail})).join(''));
+  }
+
+  // --- Today's fuel ---------------------------------------------------------
+  if(et){
+    const kcalColour = et.over ? 'var(--rank-fair)' : et.hit ? 'var(--neon)' : 'var(--blue)';
+    const proteinPct = et.protein_target_g ? et.protein_today_g / et.protein_target_g * 100 : 0;
+    html += section("Today's fuel",
+      'The target is your average daily burn over the last ' + et.benchmark_days + ' days (' + fmtNum(et.benchmark_kcal) +
+      ' kcal) plus a ' + et.daily_surplus_kcal + ' kcal surplus. It follows what your watch measures, so it moves a little over time.',
+      '<div class="stat-grid">' +
+        kpiTile('Target', fmtNum(et.daily_target_kcal), 'kcal', 'burn ' + fmtNum(et.benchmark_kcal) + ' + ' + et.daily_surplus_kcal) +
+        kpiTile('Eaten', fmtNum(et.eaten_today_kcal), 'kcal', et.pct_eaten + '% of target') +
+        (et.remaining_kcal > 0
+          ? kpiTile('Left to eat', fmtNum(et.remaining_kcal), 'kcal', 'before the day is done')
+          : kpiTile('Left to eat', '0', 'kcal', et.over ? fmtNum(-et.remaining_kcal) + ' over — enough for today' : 'target hit', kcalColour)) +
+        (et.protein_target_g
+          ? kpiTile('Protein', et.protein_today_g, 'g', et.protein_remaining_g > 0 ? et.protein_remaining_g + 'g to go of ' + et.protein_target_g + 'g' : 'target hit',
+              et.protein_remaining_g > 0 ? null : 'var(--neon)')
+          : '') +
+      '</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-faint);margin-top:14px">Calories</div>' + meterHtml(et.pct_eaten, kcalColour) +
+      (et.protein_target_g
+        ? '<div style="font-size:0.72rem;color:var(--text-faint);margin-top:10px">Protein</div>' + meterHtml(proteinPct, 'var(--blue)')
+        : ''));
+  } else {
+    html += section("Today's fuel",
+      'The eating target is built from your measured daily burn, and none has synced from the watch yet. It appears once it does.', '');
+  }
+
+  // --- Weight ---------------------------------------------------------------
+  if(w){
+    const stale = w.baseline_is_stale;
+    const rate = w.rate_kg_per_week;
+    const inBand = rate != null && rate >= w.rate_min_kg && rate <= w.rate_max_kg;
+    let tiles =
+      kpiTile('Start', w.start_kg, 'kg', (stale ? 'last scan, ' : '') + fmtDate(w.start_date)) +
+      kpiTile('Now', w.current_kg, 'kg', fmtDate(w.current_date) + (w.current_body_fat_pct != null ? ' · ' + w.current_body_fat_pct + '% fat' : '')) +
+      kpiTile('Target', w.target_kg, 'kg', '+' + w.target_gain_kg + ' kg by ' + fmtDate(bk.end)) +
+      kpiTile('Gain rate', rate != null ? fmtSigned(rate, 2) : '—', rate != null ? 'kg/wk' : '',
+        'plan ' + w.rate_min_kg + '–' + w.rate_max_kg + ' kg/wk', rate == null ? null : inBand ? 'var(--neon)' : 'var(--rank-fair)');
+    if(w.lean_change_kg != null){
+      tiles += kpiTile('Lean mass', fmtSigned(w.lean_change_kg, 1), 'kg', 'since the start', w.lean_change_kg >= 0 ? 'var(--neon)' : 'var(--rank-bad)') +
+        kpiTile('Fat mass', fmtSigned(w.fat_change_kg, 1), 'kg', 'since the start');
+    }
+    html += section('Weight',
+      stale
+        ? 'No weigh-in since the bulk began, so the start line is the last scan on record. The first morning weigh-in replaces it.'
+        : 'Measured from your first weigh-in of the bulk. The rate needs readings at least a week apart before it means anything.',
+      '<div class="stat-grid">' + tiles + '</div>' +
+      (stale ? '' : meterHtml(w.pct || 0) +
+        '<div class="meter-ends"><span>' + w.start_kg + ' kg</span><span>' + (w.to_go_kg > 0 ? w.to_go_kg + ' kg to go' : 'target reached') + '</span><span>' + w.target_kg + ' kg</span></div>') +
+      '<div id="bulkWeightChartWrap"></div>');
+  }
+
+  // --- Eating, last 7 days --------------------------------------------------
+  if(intake){
+    const logged = intake.days_logged;
+    let tiles;
+    if(logged){
+      const gap = intake.gap_kcal;
+      tiles =
+        kpiTile('Average eaten', fmtNum(intake.avg_kcal), 'kcal', intake.target_kcal ? 'target ' + fmtNum(intake.target_kcal) : '',
+          gap == null ? null : gap < -200 ? 'var(--rank-bad)' : gap > 300 ? 'var(--rank-fair)' : 'var(--neon)') +
+        (intake.days_on_target != null ? kpiTile('Days on target', intake.days_on_target + ' / ' + logged, '', 'of the days logged') : '') +
+        (intake.avg_protein_g != null ? kpiTile('Average protein', intake.avg_protein_g, 'g', intake.protein_target_g ? 'target ' + intake.protein_target_g + 'g' : '') : '') +
+        kpiTile('Days logged', logged + ' / ' + intake.window_days, '', 'complete days, today excluded');
+    } else {
+      tiles = kpiTile('Days logged', '0 / ' + intake.window_days, '', intake.last_logged ? 'last entry ' + fmtDate(intake.last_logged) : 'nothing logged yet', 'var(--rank-bad)');
+    }
+    html += section('Eating, last ' + intake.window_days + ' days',
+      'The numbers count complete days only. In the chart, green bars hit the target (the dashed line), orange ones fell short, and blue is today so far.',
+      '<div class="stat-grid">' + tiles + '</div>' +
+      (intake.series.some(d => d.kcal != null) ? '<div class="chart-wrap" style="margin-top:14px"><canvas id="bulkIntakeChart"></canvas></div>' : ''));
+  }
+
+  // --- Lifting week ---------------------------------------------------------
+  if(lift){
+    html += section("This week's lifting", lift.done + ' of ' + lift.planned + ' planned sessions done.',
+      '<div class="week-strip">' + lift.days.map(d => {
+        let cls = 'week-day', mark;
+        if(!d.lift){ cls += ' rest'; mark = d.done ? '✅' : '·'; }
+        else if(d.done){ cls += ' done'; mark = '✅'; }
+        else if(d.past){ cls += ' missed'; mark = '✖️'; }
+        else { mark = '🏋️'; }
+        if(d.is_today) cls += ' today';
+        return '<div class="' + cls + '"><div class="wd">' + d.weekday + '</div><div class="ws">' + mark + '</div>' +
+          '<div class="wn">' + (d.name || 'Rest') + '</div></div>';
+      }).join('') + '</div>');
+  }
+
+  // --- Creatine -------------------------------------------------------------
+  if(cr){
+    html += section('Creatine',
+      cr.dose_g + 'g every day, training or not. Muscles fill up over about ' + cr.saturation_days + ' days and stay full as long as you keep taking it.' +
+      (cr.saturated ? '' : ' Expect ' + cr.water_kg_min + '–' + cr.water_kg_max + ' kg on the scale from water inside the muscle while it loads — that is not fat.'),
+      '<div class="stat-grid">' +
+        kpiTile('Day', cr.day, '', 'since ' + fmtDate(cr.start)) +
+        kpiTile('Loaded', cr.pct, '%', cr.saturated ? 'muscles are full' : 'full around ' + fmtDate(cr.saturated_on), cr.saturated ? 'var(--neon)' : null) +
+        (cr.days_missed ? kpiTile('Missed', cr.days_missed, 'day' + (cr.days_missed===1?'':'s'), 'each one pushes the date back') : '') +
+      '</div>' + meterHtml(cr.pct));
+  }
+
+  html += section('How this bulk is set up', '',
+    '<div class="stat-grid">' +
+      kpiTile('Surplus', '+' + bk.daily_surplus_kcal, 'kcal', 'a day over measured burn') +
+      (w ? kpiTile('Gain', w.rate_min_kg + '–' + w.rate_max_kg, 'kg/wk', 'faster than this is mostly fat') : '') +
+      (et && et.protein_target_g ? kpiTile('Protein', et.protein_target_g, 'g', 'a day') : '') +
+      kpiTile('Stop at', bk.max_body_fat_pct, '%', 'body fat, then cut') +
+      kpiTile('Ends', fmtDate(bk.end), '', bk.days_left + ' days left') +
+    '</div>');
+
+  wrap.innerHTML = html;
+
+  // Weight against the plan: the two dashed lines are the slow and fast edges
+  // of the gain band, so a point between them is on plan at a glance.
+  const since = (DATA.body_comp || []).filter(b => b.date >= bk.start && b.weight_kg);
+  if(w && !w.baseline_is_stale && since.length >= 2){
+    el('bulkWeightChartWrap').innerHTML = '<div class="chart-wrap" style="margin-top:14px"><canvas id="bulkWeightChart"></canvas></div>';
+    const t0 = new Date(since[0].date + 'T00:00:00').getTime();
+    const weeks = d => (new Date(d + 'T00:00:00').getTime() - t0) / (7 * 864e5);
+    new Chart(el('bulkWeightChart'), {
+      data: {
+        labels: since.map(b => fmtDate(b.date)),
+        datasets: [
+          {type:'line', label:'Weight (kg)', data: since.map(b => b.weight_kg), borderColor:'#39ff8f', backgroundColor:'#39ff8f', pointRadius:3, tension:0.25},
+          {type:'line', label:'Fast edge', data: since.map(b => +(w.start_kg + w.rate_max_kg * weeks(b.date)).toFixed(2)), borderColor:'#5b6472', borderDash:[5,4], pointRadius:0},
+          {type:'line', label:'Slow edge', data: since.map(b => +(w.start_kg + w.rate_min_kg * weeks(b.date)).toFixed(2)), borderColor:'#5b6472', borderDash:[5,4], pointRadius:0},
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ boxWidth:12 } } },
+        scales:{ y:{ grid:{color:'#1b212c'}, title:{display:true, text:'kg'} } } }
+    });
+  }
+
+  if(intake && el('bulkIntakeChart')){
+    const target = intake.target_kcal;
+    new Chart(el('bulkIntakeChart'), {
+      data: {
+        labels: intake.series.map(d => fmtDate(d.date)),
+        datasets: [
+          {type:'bar', label:'Eaten (kcal)', data: intake.series.map(d => d.kcal),
+            backgroundColor: intake.series.map(d => d.kcal == null ? '#232936'
+              : d.date === DATA.generated_at ? '#5b8cff'
+              : (target && d.kcal >= target * 0.95) ? '#3ddc97' : '#ff9f5a')},
+        ].concat(target ? [{type:'line', label:'Target', data: intake.series.map(() => target), borderColor:'#e8ebf1', borderDash:[5,4], pointRadius:0}] : [])
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, grid:{color:'#1b212c'}, title:{display:true, text:'kcal'} } } }
+    });
+  }
 })();
 
 // ===================== SLEEP MODULES =====================
@@ -1397,7 +1666,27 @@ function personalTake(period, ctx){
     }
   }
 
-  if(lt){
+  // Garmin's load figures only see cardio, so in a lifting block they read as
+  // "detrained" whatever the gym work looks like. The bulk gets its own line.
+  const bk = DATA.bulk;
+  if(bk){
+    const w = bk.weight, it = bk.intake;
+    if(!w || w.baseline_is_stale){
+      sentences.push('The bulk is on day ' + bk.day_number + ' and still has no starting weight — one morning weigh-in is the first thing I\'d do, because every other number here is measured from it.');
+    } else if(w.rate_kg_per_week != null){
+      sentences.push('Day ' + bk.day_number + ' of the bulk: ' + fmtSigned(w.gained_kg, 1) + ' kg so far at ' + fmtSigned(w.rate_kg_per_week, 2) + ' kg a week against a ' + w.rate_min_kg + '–' + w.rate_max_kg + ' plan.');
+    } else {
+      sentences.push('Day ' + bk.day_number + ' of the bulk, ' + fmtSigned(w.gained_kg, 1) + ' kg from the start — too early to read a rate off it.');
+    }
+    if(it && it.days_logged >= 3 && it.gap_kcal != null && it.gap_kcal < -200){
+      sentences.push('You\'re averaging ' + fmtNum(it.avg_kcal) + ' kcal against a ' + fmtNum(it.target_kcal) + ' target, which is closer to maintenance than a surplus — the eating is the part to fix first.');
+    }
+    if(bk.lifting && bk.lifting.missed){
+      sentences.push(bk.lifting.missed + ' planned lifting day' + (bk.lifting.missed===1?'':'s') + ' missed this week.');
+    }
+  }
+
+  if(lt && !bk){
     if(lt.tsb < -30){
       sentences.push('Form is deep in the red (TSB ' + lt.tsb + '), meaning fatigue is outrunning fitness right now — I\'d treat the next few days as a recovery priority rather than pushing another hard session.');
     } else if(lt.acwr_status === 'HIGH'){
@@ -1415,7 +1704,9 @@ function personalTake(period, ctx){
 
   if(period !== 'daily' && neglected.length){
     if(neglected.length >= muscleList.length * 0.6){
-      sentences.push('Most muscle groups outside what running/your recent sport work hits haven\'t been trained this period — expected if you\'re in a running-focused block, but flagging it in case that\'s not intentional.');
+      sentences.push(bk
+        ? 'Most muscle groups haven\'t been trained this period — in a bulk that is the thing that turns the surplus into fat instead of muscle.'
+        : 'Most muscle groups outside what running/your recent sport work hits haven\'t been trained this period — expected if you\'re in a running-focused block, but flagging it in case that\'s not intentional.');
     }
   }
 
@@ -1423,7 +1714,7 @@ function personalTake(period, ctx){
     if(!nu.entries.length){
       sentences.push('No food logged this period, so I genuinely can\'t say anything useful about fueling — that\'s the biggest blind spot in this data right now, and probably the highest-value thing to start tracking.');
     } else if(nu.avgCalories > 0 && nu.avgCalories < 1800 && tr.totalMin > 200){
-      sentences.push('Average logged intake (' + nu.avgCalories + ' cal/day) looks low relative to how much you\'re training — worth double-checking you\'re not under-fueling, especially with a half marathon build going.');
+      sentences.push('Average logged intake (' + nu.avgCalories + ' cal/day) looks low relative to how much you\'re training — worth double-checking you\'re not under-fueling.');
     }
   }
 
@@ -1573,6 +1864,18 @@ function renderAnalysis(period){
   }
   html += '</div>';
 
+  // A lifting block has no running to summarise; its card is the bulk.
+  const bulkNow = DATA.bulk;
+  if(bulkNow && !DATA.race){
+    const bw = bulkNow.weight, bi = bulkNow.intake, bl = bulkNow.lifting;
+    html += '<div class="analysis-card"><h3>💪 Bulk</h3>' +
+      '<div class="analysis-row"><span class="k">Day</span><span class="v">' + bulkNow.day_number + ' of ' + bulkNow.total_days + '</span></div>' +
+      (bw && !bw.baseline_is_stale ? '<div class="analysis-row"><span class="k">Gained</span><span class="v">' + fmtSigned(bw.gained_kg, 1) + ' kg</span></div>' : '') +
+      (bw && bw.rate_kg_per_week != null ? '<div class="analysis-row"><span class="k">Rate</span><span class="v">' + fmtSigned(bw.rate_kg_per_week, 2) + ' kg/wk</span></div>' : '') +
+      (bi && bi.avg_kcal != null ? '<div class="analysis-row"><span class="k">Avg eaten (7d)</span><span class="v">' + fmtNum(bi.avg_kcal) + (bi.target_kcal ? ' / ' + fmtNum(bi.target_kcal) : '') + '</span></div>' : '') +
+      (bl ? '<div class="analysis-row"><span class="k">Lifting this week</span><span class="v">' + bl.done + ' / ' + bl.planned + '</span></div>' : '') +
+      '</div>';
+  } else {
   html += '<div class="analysis-card"><h3>🏃 Running</h3>';
   if(ru.runs.length){
     html += '<div class="analysis-row"><span class="k">Distance</span><span class="v">' + ru.totalKm + ' km ' + trendArrow(ru.totalKm, ruPrev.totalKm) + '</span></div>';
@@ -1585,6 +1888,7 @@ function renderAnalysis(period){
     html += '<div class="analysis-row"><span class="k">ACWR</span><span class="v">' + (lt.acwr_status||'-') + '</span></div>';
   }
   html += '</div>';
+  }
 
   html += '<div class="analysis-card"><h3>🍽️ Nutrition</h3>';
   if(nu.entries.length){
@@ -1852,29 +2156,12 @@ el('badgeGrid').innerHTML = gam.badges.map(b =>
   '<div class="bdesc">' + b.description + '</div></div>'
 ).join('');
 
-// "-3400" doesn't fit a ~45px-wide calendar cell on a phone; "-3.4k" does.
+// "13400" doesn't fit a ~45px-wide calendar cell on a phone; "13.4k" does.
 function fmtDenAbbrev(n){
   const abs = Math.abs(n);
   if(abs < 1000) return String(n);
   const k = n / 1000;
   return (Number.isInteger(k) ? k : k.toFixed(1)) + 'k';
-}
-
-// Wins are logged as negative amount_den (they net against losses); shown
-// as a bare number that reads as confusing at best ("-2500 ден" for a win)
-// and as a straight-up sign error at worst. Every place a gambling amount
-// renders should go through this instead of touching amount_den directly.
-function gamblingAmount(n, abbrev){
-  const isWin = n < 0;
-  const abs = Math.abs(n);
-  const shown = abbrev ? fmtDenAbbrev(abs) : abs;
-  const amountText = (isWin ? '+' : '-') + shown;
-  return {
-    isWin,
-    color: isWin ? 'var(--neon)' : 'var(--rank-bad)',
-    amountText, // signed number only, e.g. "+2500" — for callers styling the "ден" unit separately
-    text: amountText + ' ден',
-  };
 }
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2063,36 +2350,27 @@ function renderNutritionCalendar(containerId, nutritionByDate, onCellClick){
   });
 }
 
-function renderGamblingCalendar(containerId, byDate){
-  // Intensity normalizes against the all-time worst loss and biggest win, not
-  // just what's visible in the current month, so a day reads the same color
-  // regardless of which month you're paging through.
-  const amounts = Object.values(byDate);
-  const maxLoss = Math.max(1, ...amounts.filter(a => a > 0));
-  const maxWin = Math.max(1, ...amounts.filter(a => a < 0).map(a => -a));
+function renderExpensesCalendar(containerId, byDate){
+  // Intensity is relative to the biggest day on record, not the biggest in the
+  // visible month, so a day reads the same whichever month is on screen.
+  const peak = Math.max(1, ...Object.values(byDate).filter(a => a > 0));
   renderMonthCalendar(containerId, iso => {
     const amount = byDate[iso];
     if(!amount) return {};
-    const g = gamblingAmount(amount, true);
-    const magnitude = g.isWin ? -amount : amount;
-    const scale = g.isWin ? maxWin : maxLoss;
-    const opacity = Math.min(0.55, 0.12 + magnitude / scale * 0.43).toFixed(2);
-    const rgb = g.isWin ? '61,220,151' : '255,107,122';
+    const opacity = Math.min(0.55, 0.12 + Math.max(0, amount) / peak * 0.43).toFixed(2);
     return {
-      inner: '<span class="cal-cal" style="color:' + g.color + '">' + g.text + '</span>',
-      title: gamblingAmount(amount).text + (g.isWin ? '' : ' lost'),
-      style: 'background:rgba(' + rgb + ',' + opacity + ');border-color:rgba(' + rgb + ',0.5);',
+      inner: '<span class="cal-cal">' + fmtDenAbbrev(amount) + '</span>',
+      title: fmtNum(amount) + ' ден spent',
+      style: 'background:rgba(91,140,255,' + opacity + ');border-color:rgba(91,140,255,0.5);',
       raw: amount,
     };
   }, {
     gridClass: 'nutrition-grid',
     summarize: cells => {
-      const activeDays = cells.filter(c => c && c.raw != null);
-      if(!activeDays.length) return '';
-      const total = activeDays.reduce((a, c) => a + c.raw, 0);
-      const t = gamblingAmount(total);
-      return '<span style="color:' + t.color + '">' + t.text + '</span> net this month · ' +
-        activeDays.length + ' day' + (activeDays.length===1?'':'s');
+      const days = cells.filter(c => c && c.raw != null);
+      if(!days.length) return '';
+      const total = days.reduce((a, c) => a + c.raw, 0);
+      return fmtNum(total) + ' ден this month · ' + days.length + ' day' + (days.length===1?'':'s') + ' with spending';
     },
   });
 }
@@ -2542,6 +2820,14 @@ if(training.sessions.length){
   const nutrition = DATA.nutrition || [];
   const nv = DATA.nutrition_view || {};
   const eb = DATA.eating_budget;
+  const et = DATA.eating_target;
+  // In a bulk the good direction flips: a surplus is the point, a deficit is
+  // the thing to fix. Every balance colour on this tab goes through here.
+  const bulking = !!DATA.bulk;
+  function balanceRank(v){
+    if(bulking) return v >= 150 ? 'good' : v > -200 ? 'fair' : 'bad';
+    return v > 0 ? 'fair' : 'good';
+  }
 
   const CLASSIFICATION_INFO = {
     surplus_adequate_protein: {label: 'Likely building muscle', color:'#3ddc97', desc: 'Eating more than you\'re burning, with enough protein to support it — classic lean-bulk conditions, assuming the strength training keeps up.'},
@@ -2550,6 +2836,12 @@ if(training.sessions.length){
     deficit_low_protein: {label: 'Deficit with a muscle-loss risk', color:'#ff6b7a', desc: 'Eating less than you\'re burning AND protein is below target — with a training block running, this combination raises the risk of losing muscle, not just fat.'},
     maintenance: {label: 'Roughly maintaining', color:'#5b8cff', desc: 'Intake and burn are close enough that weight should stay roughly stable.'},
   };
+  if(bulking){
+    const short = {label: 'In a deficit — not bulking', color:'#ff6b7a', desc: 'Eating less than you burn. In a bulk that leaves nothing to build with — eat up to the target.'};
+    CLASSIFICATION_INFO.deficit_adequate_protein = short;
+    CLASSIFICATION_INFO.deficit_low_protein = short;
+    CLASSIFICATION_INFO.maintenance = {label: 'At maintenance — no surplus yet', color:'#ff9f5a', desc: 'Intake and burn are about level. That holds your weight where it is; growing needs the surplus on top.'};
+  }
 
   // Today is still in progress — show it, but never blend it into the "daily average".
   let html = '<div class="section"><h2>Today So Far</h2>' +
@@ -2564,6 +2856,20 @@ if(training.sessions.length){
     (nv.today_bmr_kcal != null ? '<div class="analysis-row"><span class="k">└ resting</span><span class="v">' + Math.round(nv.today_bmr_kcal) + ' kcal</span></div>' : '') +
     (nv.today_active_kcal != null ? '<div class="analysis-row"><span class="k">└ active</span><span class="v">' + Math.round(nv.today_active_kcal) + ' kcal</span></div>' : '') +
     '</div></div></div>';
+
+  if(et){
+    const colour = et.over ? 'var(--rank-fair)' : et.hit ? 'var(--neon)' : 'var(--blue)';
+    html += '<div class="section"><h2>Eating Target</h2>' +
+      '<div class="desc">Your own trailing ' + et.benchmark_days + '-day average total burn (the figure Garmin Connect\'s "Avg Total" widget shows), plus the ' + et.daily_surplus_kcal + ' kcal/day the bulk needs. Moves with your data — not a fixed number.</div>' +
+      '<div class="analysis-card">' +
+      '<div class="analysis-row"><span class="k">Benchmark burn (avg)</span><span class="v">' + fmtNum(et.benchmark_kcal) + ' kcal</span></div>' +
+      '<div class="analysis-row"><span class="k">Surplus</span><span class="v">+' + et.daily_surplus_kcal + ' kcal</span></div>' +
+      '<div class="analysis-row"><span class="k">Daily target</span><span class="v">' + fmtNum(et.daily_target_kcal) + ' kcal</span></div>' +
+      '<div class="workout-progress-bar" style="height:10px;margin-top:12px;"><div class="workout-progress-fill" style="width:' + Math.max(0, Math.min(et.pct_eaten ?? 0, 100)) + '%;background:' + colour + '"></div></div>' +
+      '<div class="analysis-row" style="margin-top:12px;"><span class="k">Eaten so far</span><span class="v">' + fmtNum(et.eaten_today_kcal) + ' kcal</span></div>' +
+      '<div class="analysis-row"><span class="k">' + (et.remaining_kcal > 0 ? 'Left to eat today' : et.over ? 'Over the target by' : 'Target hit') + '</span><span class="v" style="color:' + colour + ';font-weight:700;">' + fmtNum(Math.abs(et.remaining_kcal)) + ' kcal</span></div>' +
+      '</div></div>';
+  }
 
   if(eb){
     const barPct = Math.max(0, Math.min(eb.pct_used ?? 0, 100));
@@ -2592,7 +2898,7 @@ if(training.sessions.length){
       '<div class="analysis-row"><span class="k">Avg burn (Garmin)</span><span class="v">' + nv.week_avg_burn_kcal + ' kcal</span></div>' +
       (nv.week_avg_bmr_kcal != null ? '<div class="analysis-row"><span class="k">└ resting</span><span class="v">' + nv.week_avg_bmr_kcal + ' kcal</span></div>' : '') +
       (nv.week_avg_active_kcal != null ? '<div class="analysis-row"><span class="k">└ active</span><span class="v">' + nv.week_avg_active_kcal + ' kcal</span></div>' : '') +
-      '<div class="analysis-row"><span class="k">Balance</span><span class="v" style="color:' + rankColour(nv.week_balance_kcal>0?'fair':'good') + '">' + balanceStr + ' kcal/day</span></div>' +
+      '<div class="analysis-row"><span class="k">Balance</span><span class="v" style="color:' + rankColour(balanceRank(nv.week_balance_kcal)) + '">' + balanceStr + ' kcal/day</span></div>' +
       '<div class="analysis-row"><span class="k">Avg protein</span><span class="v">' + nv.week_avg_protein_g + 'g <span style="color:var(--text-faint)">/ ' + nv.protein_target_g + 'g target</span></span></div>' +
       '</div>' +
       '<div class="analysis-card"><h3>Read</h3>' +
@@ -2642,7 +2948,9 @@ if(training.sessions.length){
     .sort();
   if(balanceDates.length){
     html += '<div class="section"><h2>Daily Energy Balance</h2>' +
-      '<div class="desc">Burned minus consumed, per day. Bars above the line are deficit days; below the line are surplus days.</div>' +
+      '<div class="desc">' + (bulking
+        ? 'Consumed minus burned, per day. Bars above the line are surplus days — what a bulk needs; below the line the day ran a deficit.'
+        : 'Burned minus consumed, per day. Bars above the line are deficit days; below the line are surplus days.') + '</div>' +
       '<div class="chart-wrap"><canvas id="balanceChart"></canvas></div></div>';
   }
 
@@ -2672,14 +2980,14 @@ if(training.sessions.length){
       data: {
         labels: balanceDates.map(fmtDate),
         datasets: [{
-          label: 'Burned − consumed (kcal)',
-          data: balanceDates.map(d => Math.round(trendByDate[d].total_kcal - intakeByDate[d])),
+          label: bulking ? 'Consumed − burned (kcal)' : 'Burned − consumed (kcal)',
+          data: balanceDates.map(d => Math.round((trendByDate[d].total_kcal - intakeByDate[d]) * (bulking ? -1 : 1))),
           // Chart.js draws on a <canvas>, which can't resolve CSS var() the way
           // DOM styles can — rankColour() returns 'var(--rank-good)' and canvas
           // silently falls back to black. Every other chart here uses literal
           // hex for this reason; matching that instead of rankColour().
           backgroundColor: balanceDates.map(d =>
-            (trendByDate[d].total_kcal - intakeByDate[d]) >= 0 ? '#3ddc97' : '#ff9f5a'),
+            ((trendByDate[d].total_kcal - intakeByDate[d]) * (bulking ? -1 : 1)) >= 0 ? '#3ddc97' : '#ff9f5a'),
         }]
       },
       options: {
@@ -2719,7 +3027,7 @@ if(training.sessions.length){
         : '<div class="stat-tile"><div class="lbl">Burned</div><div class="val">—</div><div class="why">No Garmin data synced for this day.</div></div>') +
       (balance != null
         ? '<div class="stat-tile"><div class="lbl">Difference</div><div class="val" style="color:' +
-          rankColour(balance > 0 ? 'fair' : 'good') + '">' + (balance > 0 ? '+' : '') + balance + '<span class="u">kcal</span></div>' +
+          rankColour(balanceRank(balance)) + '">' + (balance > 0 ? '+' : '') + balance + '<span class="u">kcal</span></div>' +
           '<div class="why">' + (balance > 0 ? 'Ate more than you burned.' : 'Burned more than you ate.') + '</div></div>'
         : '') +
       '<div class="stat-tile"><div class="lbl">Protein</div><div class="val">' + Math.round(t.protein) + '<span class="u">g</span></div>' +
@@ -2835,6 +3143,27 @@ if(!bodyView){
   let html = '';
 
   // Goal panel first — it's the thing being worked toward, so it leads.
+  const bk = DATA.bulk;
+  if(bk && bk.weight){
+    const w = bk.weight, stale = w.baseline_is_stale;
+    html += '<div class="section"><h2>Bulk</h2>' +
+      '<div class="desc">' + (stale
+        ? 'No weigh-in since the bulk began on ' + fmtDate(bk.start) + ' — the next reading sets the start line.'
+        : 'Measured from your first weigh-in of the bulk. The full picture — eating, lifting, creatine — is on the Bulk tab.') + '</div>' +
+      '<div class="stat-grid">' +
+        kpiTile('Start', w.start_kg, 'kg', (stale ? 'last scan, ' : '') + fmtDate(w.start_date)) +
+        kpiTile('Now', w.current_kg, 'kg', fmtDate(w.current_date)) +
+        kpiTile('Target', w.target_kg, 'kg', '+' + w.target_gain_kg + ' kg') +
+        (w.lean_change_kg != null
+          ? kpiTile('Lean mass', fmtSigned(w.lean_change_kg, 1), 'kg', 'since the start', w.lean_change_kg >= 0 ? 'var(--neon)' : 'var(--rank-bad)') +
+            kpiTile('Fat mass', fmtSigned(w.fat_change_kg, 1), 'kg', 'since the start')
+          : '') +
+      '</div>' +
+      (stale ? '' : meterHtml(w.pct || 0) +
+        '<div class="meter-ends"><span>' + w.start_kg + ' kg</span><span>' + fmtSigned(w.gained_kg, 1) + ' kg so far</span><span>' + w.target_kg + ' kg</span></div>') +
+      '</div>';
+  }
+
   const fl = DATA.fat_loss;
   if(fl){
     const span = Math.max(0.1, fl.start_body_fat_pct - fl.target_body_fat_pct);
@@ -2941,89 +3270,116 @@ function statTile(m){
     '</div>';
 }
 
-// ===================== GAMBLING TAB =====================
+// ===================== EXPENSES TAB =====================
+// Where the money went, and how the current paycheck is holding up. Amounts
+// are MKD denars; a refund is logged as a negative expense.
 (function(){
-  const wrap = el('gamblingContent');
+  const wrap = el('expensesContent');
   if(!wrap) return;
-  const gv = DATA.gambling_view;
+  const ev = DATA.expenses_view;
 
-  if(!gv){
-    wrap.innerHTML = '<div class="placeholder"><div class="big">🎰</div>' +
-      '<p><b>No losses logged yet.</b></p>' +
-      '<p>Tracking starts today (' + fmtDate(DATA.generated_at) + '). Tell me what you lost and I\'ll log it here — ' +
-      'the running total, and what it could have bought instead, both start counting from the first entry.</p></div>';
+  if(!ev){
+    wrap.innerHTML = '<div class="placeholder"><div class="big">💸</div>' +
+      '<p><b>Nothing logged yet.</b></p>' +
+      '<p>Tell me what you spent and on what — "450 on groceries", "gym membership 1800" — and it shows up here, ' +
+      'by category and against your paycheck.</p></div>';
     return;
   }
 
-  const weekFmt = gamblingAmount(gv.week_total_den);
-  const monthFmt = gamblingAmount(gv.month_total_den);
-  const allTimeFmt = gamblingAmount(gv.total_lost_den);
-  const worstFmt = gamblingAmount(gv.worst_day.amount_den);
-  let html = '<div class="section"><h2>Totals</h2>' +
-    '<div class="stat-grid">' +
-    '<div class="stat-tile"><div class="lbl">This week</div><div class="val" style="color:' + weekFmt.color + '">' +
-      weekFmt.amountText + '<span class="u">ден</span></div></div>' +
-    '<div class="stat-tile"><div class="lbl">This month</div><div class="val" style="color:' + monthFmt.color + '">' +
-      monthFmt.amountText + '<span class="u">ден</span></div></div>' +
-    '<div class="stat-tile"><div class="lbl">All time</div><div class="val" style="color:' + allTimeFmt.color + '">' +
-      allTimeFmt.amountText + '<span class="u">ден</span></div>' +
-      '<div class="why">Tracking since ' + fmtDate(gv.tracking_since) + ' · ' + gv.entry_count + ' entr' + (gv.entry_count===1?'y':'ies') + '</div></div>' +
-    '<div class="stat-tile"><div class="lbl">Worst day</div><div class="val" style="color:' + worstFmt.color + '">' + worstFmt.amountText + '<span class="u">ден</span></div>' +
-      '<div class="why">' + fmtDate(gv.worst_day.date) + '</div></div>' +
+  let html = '';
+  const pay = ev.paycheck || {};
+  const cur = pay.current, next = pay.next;
+
+  if(cur){
+    const colour = rankColour(cur.rank);
+    html += '<div class="section"><h2>This paycheck</h2>' +
+      '<div class="desc">' + fmtNum(cur.amount_den) + ' ден received ' + fmtDate(cur.date) + '. The bar is how much of it is spent; ' +
+      'the white mark is how much of the pay period has gone. Bar behind the mark means the money is outlasting the month.' +
+      (cur.period_end_assumed ? ' The period is assumed to run a month, since no next paycheck is on file.' : '') + '</div>' +
+      '<div class="stat-grid">' +
+        kpiTile('Left', fmtNum(cur.remaining_den), 'ден', 'of ' + fmtNum(cur.amount_den), colour) +
+        kpiTile('Spent', fmtNum(cur.spent_den), 'ден', cur.pct_spent + '% of the paycheck') +
+        kpiTile('Per day', fmtNum(cur.daily_allowance_den), 'ден', 'for the next ' + cur.days_left + ' day' + (cur.days_left===1?'':'s')) +
+        kpiTile('Next paycheck', fmtDate(cur.period_end), '', next ? fmtNum(next.amount_den) + ' ден' : 'expected') +
+      '</div>' +
+      meterHtml(cur.pct_spent, colour, cur.pct_elapsed) +
+      '<div class="meter-ends"><span>' + fmtDate(cur.date) + '</span><span>' + cur.pct_elapsed + '% of the period gone</span><span>' + fmtDate(cur.period_end) + '</span></div>' +
+      '</div>';
+  } else if(next){
+    html += '<div class="section"><h2>Next paycheck</h2>' +
+      '<div class="desc">Once it lands, this turns into a running balance: what is left of it, and what that allows per day until the one after.</div>' +
+      '<div class="stat-grid">' +
+        kpiTile('Arrives in', next.days_until, 'day' + (next.days_until===1?'':'s'), new Date(next.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'})) +
+        kpiTile('Amount', fmtNum(next.amount_den), 'ден', next.source || 'income') +
+        (ev.entry_count ? kpiTile('Spent until then', fmtNum(ev.total_den), 'ден', 'since ' + fmtDate(ev.tracking_since)) : '') +
+      '</div></div>';
+  }
+
+  if(!ev.entry_count){
+    html += '<div class="placeholder"><div class="big">💸</div>' +
+      '<p><b>No expenses logged yet.</b></p>' +
+      '<p>Tell me what you spent and on what — "450 on groceries", "gym membership 1800" — and the totals, ' +
+      'categories and calendar fill in from the first entry.</p></div>';
+    wrap.innerHTML = html;
+    return;
+  }
+
+  const big = ev.biggest_this_month;
+  const vsLast = ev.prev_month_total_den != null
+    ? 'last month ' + fmtNum(ev.prev_month_total_den) : 'since ' + fmtDate(ev.tracking_since);
+  html += '<div class="section"><h2>Totals</h2><div class="stat-grid">' +
+    kpiTile('This week', fmtNum(ev.week_total_den), 'ден') +
+    kpiTile('This month', fmtNum(ev.month_total_den), 'ден', vsLast) +
+    kpiTile('Per day this month', fmtNum(ev.month_daily_avg_den), 'ден', 'averaged over every day so far') +
+    (big ? kpiTile('Biggest this month', fmtNum(big.amount_den), 'ден', (big.note || big.category) + ' · ' + fmtDate(big.date)) : '') +
     '</div></div>';
 
-  function oppCostSection(title, totalDen, costs){
-    if(!costs || !costs.length) return '';
-    const cards = costs.map(oc =>
-      '<div class="opp-card">' +
-        '<div class="opp-card-image"><img src="icons/opportunity/' + oc.image + '" alt="' + oc.item + '" loading="lazy"></div>' +
-        '<div class="opp-card-body">' +
-          '<div class="opp-card-count">' + oc.count + '<span class="opp-card-unit">' + (oc.count === 1 ? oc.item : oc.item_plural) + '</span></div>' +
-          '<div class="opp-card-price">' + oc.price_den + ' ден each' +
-            (oc.leftover_den > 0 ? ' · ' + oc.leftover_den + ' ден left over' : '') + '</div>' +
-        '</div></div>'
-    ).join('');
-    return '<div class="section"><h2>' + title + '</h2>' +
-      '<div class="desc">' + totalDen + ' ден gone, priced in what you actually spend money on.</div>' +
-      '<div class="opp-grid">' + cards + '</div></div>';
+  const cats = ev.month_by_category || [];
+  if(cats.length){
+    const top = Math.max(1, cats[0].total_den);
+    html += '<div class="section"><h2>Where it went this month</h2>' +
+      '<div class="desc">By category, biggest first.</div>' +
+      cats.map(c =>
+        '<div class="cat-row"><span class="cn">' + c.category + '</span>' +
+        '<span class="comp-track" style="height:9px"><span class="comp-fill" style="width:' +
+          Math.max(0, c.total_den / top * 100).toFixed(1) + '%;background:var(--blue)"></span></span>' +
+        '<span class="cv">' + fmtNum(c.total_den) + ' <span style="color:var(--text-faint);font-weight:400">' + c.pct + '%</span></span></div>'
+      ).join('') + '</div>';
   }
-  html += oppCostSection('This week — what that could have been', gv.week_total_den, gv.opportunity_costs_week);
-  html += oppCostSection('This month — what that could have been', gv.month_total_den, gv.opportunity_costs_month);
-  html += oppCostSection('All time — what that could have been', gv.total_lost_den, gv.opportunity_costs);
 
-  html += '<div class="section"><h2>Calendar</h2><div id="gamblingCalWrap"></div></div>';
-  html += '<div class="section"><h2>Log</h2><div id="gamblingTableWrap"></div></div>';
+  html += '<div class="section"><h2>Calendar</h2><div id="expensesCalWrap"></div></div>';
+  html += '<div class="section"><h2>Log</h2><div id="expensesTableWrap"></div></div>';
   wrap.innerHTML = html;
 
-  renderGamblingCalendar('gamblingCalWrap', gv.by_date);
+  renderExpensesCalendar('expensesCalWrap', ev.by_date);
 
   // Grouped by month, only the most recent month open — same reasoning as the
   // Food Log: a long tracking history shouldn't render as one giant scroll.
-  const entries = (DATA.gambling || []).filter(e => isValidIsoDate(e.date)).sort((a,b) => (b.date||'').localeCompare(a.date||''));
-  const monthGroups = [];
+  const entries = (DATA.expenses || []).filter(e => isValidIsoDate(e.date) && typeof e.amount_den === 'number')
+    .sort((a,b) => b.date.localeCompare(a.date));
+  const groups = [];
   entries.forEach(e => {
-    const key = (e.date || '').slice(0, 7);
-    let group = monthGroups[monthGroups.length - 1];
+    const key = e.date.slice(0, 7);
+    let group = groups[groups.length - 1];
     if(!group || group.key !== key){
       const [y, m] = key.split('-').map(Number);
-      group = { key, label: (m ? MONTH_NAMES[m - 1] + ' ' + y : 'Undated'), entries: [] };
-      monthGroups.push(group);
+      group = { key, label: MONTH_NAMES[m - 1] + ' ' + y, entries: [] };
+      groups.push(group);
     }
     group.entries.push(e);
   });
-  el('gamblingTableWrap').innerHTML = monthGroups.map((group, idx) => {
-    const total = group.entries.reduce((a, e) => a + (e.amount_den || 0), 0);
-    const totalFmt = gamblingAmount(total);
-    const rows = group.entries.map(e => {
-      const a = gamblingAmount(e.amount_den || 0);
-      return '<tr><td>' + fmtDate(e.date) + '</td><td>' + (e.note || '-') + '</td>' +
-        '<td style="text-align:right;color:' + a.color + '">' + a.text + '</td></tr>';
-    }).join('');
+  el('expensesTableWrap').innerHTML = groups.map((group, idx) => {
+    const total = group.entries.reduce((a, e) => a + e.amount_den, 0);
+    const rows = group.entries.map(e =>
+      '<tr><td>' + fmtDate(e.date) + '</td>' +
+      '<td style="color:var(--text-faint);text-transform:capitalize">' + (e.category || 'other') + '</td>' +
+      '<td>' + (e.note || '-') + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">' + fmtNum(e.amount_den) + ' ден</td></tr>'
+    ).join('');
     return '<details class="month-log"' + (idx === 0 ? ' open' : '') + '><summary>' +
       '<span class="month-label">' + group.label + '</span>' +
-      '<span class="month-meta"><span style="color:' + totalFmt.color + '">' + totalFmt.text + '</span> net · ' +
-        group.entries.length + ' entr' + (group.entries.length===1?'y':'ies') + '</span>' +
-      '</summary><div class="table-scroll"><table><thead><tr><th>Date</th><th>Note</th>' +
+      '<span class="month-meta">' + fmtNum(total) + ' ден · ' + group.entries.length + ' entr' + (group.entries.length===1?'y':'ies') + '</span>' +
+      '</summary><div class="table-scroll"><table><thead><tr><th>Date</th><th>Category</th><th>Note</th>' +
       '<th style="text-align:right">Amount</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
   }).join('');
 })();

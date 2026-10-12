@@ -61,8 +61,8 @@ PR_TYPE_LABELS = {
     2: "Mile",
     3: "5K",
     4: "10K",
-    5: "15K",
-    6: "Half Marathon",
+    5: "Half Marathon",
+    6: "Marathon",
     7: "Longest Run",
 }
 PR_TIME_TYPES = {1, 2, 3, 4, 5, 6}

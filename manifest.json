@@ -1,7 +1,7 @@
 {
-  "name": "Tino's Training App",
-  "short_name": "Training",
-  "description": "Running, training, sleep, nutrition, and body tracking dashboard",
+  "name": "Tino's Bulk App",
+  "short_name": "Bulk",
+  "description": "Bulk, training, food, sleep, body and expenses dashboard",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -11,6 +11,7 @@ from datetime import date, timedelta
 import pytest
 
 from garmin_dashboard.config import FatLossGoal
+from garmin_dashboard.domain.activities import PR_TYPE_LABELS
 from garmin_dashboard.domain.benchmarks import build_benchmarks
 from garmin_dashboard.domain.fuelling import (
     build_eating_budget,
@@ -453,3 +454,74 @@ def test_digest_survives_an_empty_week():
     d = build_digest({}, TODAY)
     assert d["stats"]
     assert d["wins"] == []
+
+
+# --------------------------------------------------------------- bulk mode
+
+def test_garmin_record_type_five_is_the_half_marathon():
+    """Garmin numbers its records 1K, mile, 5K, 10K, half, full. Type 5 was once
+    labelled 15K here, which filed a half-marathon time under a distance it
+    could not have been run at."""
+    assert PR_TYPE_LABELS[5] == "Half Marathon"
+    assert PR_TYPE_LABELS[6] == "Marathon"
+
+
+def test_a_half_marathon_record_lands_on_the_pace_curve_at_its_own_distance():
+    payload = {"personal_records": [
+        {"label": "10K", "value": "57:01"},
+        {"label": "Half Marathon", "value": "2:03:16"},
+    ]}
+    half = next(p for p in build_pace_curve(payload)["prs"] if p["label"] == "Half Marathon")
+    assert half["km"] == pytest.approx(21.0975)
+    assert build_pr_wall(payload)["records"][1]["pace_label"] == "5:51/km"
+
+
+def test_form_is_set_aside_during_a_lifting_block():
+    payload = {
+        "sleep_trend": nights(),
+        "training": {"muscle_scores": {"chest": 0.2}},
+        "load_trend": [{"date": iso(0), "atl": 80, "ctl": 220, "tsb": 140}],
+        "rhr_trend": [{"date": iso(i), "rhr": 52} for i in range(7)],
+    }
+    racing = build_readiness(payload, TODAY)
+    bulking = build_readiness({**payload, "bulk": {"day_number": 3}}, TODAY)
+    form = next(c for c in bulking["components"] if c["key"] == "form")
+    assert form["score"] is None and form["available"] is False
+    assert bulking["inputs_used"] == racing["inputs_used"] - 1
+    # A cardio load reading "detrained" must not hold a lifter's score down.
+    assert bulking["score"] > racing["score"]
+    assert bulking["limiter"] != "form"
+
+
+def test_the_hard_day_call_talks_about_lifting_in_a_bulk():
+    payload = {"sleep_trend": nights(), "training": {"muscle_scores": {"chest": 0.1}, "sessions": []}}
+    readiness = build_readiness(payload, TODAY)
+    call = build_todays_call({**payload, "bulk": {"day_number": 3}}, readiness, TODAY)
+    assert call["verdict"] == "hard"
+    assert "long run" not in call["detail"]
+    assert "lifts" in call["detail"]
+
+
+def test_rings_in_a_bulk_track_calories_and_the_planned_lifting_days():
+    payload = {
+        "nutrition_view": {"protein_target_g": 190, "today_protein_g": 95},
+        "eating_target": {"daily_target_kcal": 3100, "eaten_today_kcal": 1550},
+        "bulk": {"lifting": {"planned": 5, "done": 2}},
+        "training": {"sessions": sessions(range(6))},
+    }
+    rings = {r["key"]: r for r in build_rings(payload, TODAY)["rings"]}
+    assert set(rings) == {"calories", "protein", "training"}
+    assert rings["calories"]["pct"] == 50
+    assert (rings["training"]["label"], rings["training"]["value"], rings["training"]["target"]) == ("Lifting days", 2, 5)
+    assert rings["training"]["pct"] == 40
+
+
+def test_digest_counts_lifting_days_instead_of_distance_in_a_bulk():
+    week = sessions(range(3))
+    for s in week:
+        s["type"] = "gym"
+    week.append({"date": iso(4), "type": "padel", "duration_min": 90})
+    d = build_digest({"training": {"sessions": week}, "bulk": {"day_number": 5}}, TODAY)
+    by_label = {s["label"]: s["value"] for s in d["stats"]}
+    assert by_label["Lifting days"] == 3
+    assert "Distance run" not in by_label

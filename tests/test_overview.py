@@ -18,6 +18,16 @@ def cards_by_domain(payload):
     return {c["domain"]: c for c in build_overview(payload, TODAY)["cards"]}
 
 
+BULK = {
+    "day_number": 12, "total_days": 141, "rank": "good", "findings": [],
+    "weight": {"baseline_is_stale": False, "gained_kg": 0.6, "target_gain_kg": 5.0, "rate_kg_per_week": 0.35},
+}
+EATING = {
+    "remaining_kcal": 1400, "eaten_today_kcal": 1700, "daily_target_kcal": 3100, "over": False,
+    "protein_today_g": 90, "protein_target_g": 190,
+}
+
+
 def test_empty_payload_still_produces_a_page():
     ov = build_overview({}, TODAY)
     assert ov["cards"]
@@ -161,12 +171,19 @@ def test_today_block_carries_the_in_progress_numbers():
     }}
     assert build_overview(payload, TODAY)["today"] == {
         "intake_kcal": 820, "protein_g": 55, "burn_kcal": 1035, "protein_target_g": 198,
+        "kcal_target": None,
     }
 
 
 def test_every_card_links_to_a_real_tab():
-    payload = {"training": {"muscle_scores": {"chest": 0.9}}, "fat_loss": {"fat_to_lose_kg": 2.0}}
-    tabs = {"overview", "analysis", "workout", "training", "running", "sleep", "nutrition", "body"}
+    payload = {
+        "training": {"muscle_scores": {"chest": 0.9}},
+        "fat_loss": {"fat_to_lose_kg": 2.0},
+        "bulk": BULK,
+        "eating_target": EATING,
+        "expenses_view": {"entry_count": 3, "week_total_den": 900, "month_total_den": 4200, "paycheck": None},
+    }
+    tabs = {"overview", "bulk", "analysis", "workout", "training", "running", "sleep", "nutrition", "body", "expenses"}
     for card in build_overview(payload, TODAY)["cards"]:
         assert card["tab"] in tabs, f"{card['domain']} links to unknown tab {card['tab']}"
 
@@ -180,3 +197,68 @@ def test_a_failing_card_cannot_take_down_the_page(monkeypatch):
     monkeypatch.setattr(overview, "CARD_BUILDERS", [explode, overview._sleep_card])
     ov = overview.build_overview({"sleep_trend": [{"date": iso(0), "score": 80}]}, TODAY)
     assert len(ov["cards"]) == 1
+
+
+# --------------------------------------------------------------- bulk mode
+
+def test_bulk_card_leads_with_the_gain_and_links_to_the_bulk_tab():
+    card = cards_by_domain({"bulk": BULK})["bulk"]
+    assert card["value"] == "+0.6" and card["unit"] == "kg"
+    assert "day 12 of 141" in card["sub"] and "+0.35 kg/week" in card["sub"]
+    assert card["tab"] == "bulk" and card["status"] == "good"
+
+
+def test_bulk_card_asks_for_a_weigh_in_until_there_is_a_start_weight():
+    stale = {**BULK, "weight": {"baseline_is_stale": True, "gained_kg": 0, "target_gain_kg": 5.0}}
+    for bulk in (stale, {**BULK, "weight": None}):
+        card = cards_by_domain({"bulk": bulk})["bulk"]
+        assert card["value"] == "Weigh in"
+        assert card["status"] == "warn"
+
+
+def test_fuel_card_shows_what_is_left_to_eat():
+    card = cards_by_domain({"eating_target": EATING})["fuel"]
+    assert card["value"] == 1400 and card["unit"] == "kcal"
+    assert "1700 of 3100 kcal" in card["sub"] and "protein 90/190g" in card["sub"]
+    assert card["tab"] == "nutrition"
+
+
+def test_fuel_card_reads_hit_once_the_target_is_eaten():
+    card = cards_by_domain({"eating_target": {**EATING, "remaining_kcal": -50, "eaten_today_kcal": 3150}})["fuel"]
+    assert card["value"] == "Hit" and card["status"] == "good"
+
+
+def test_running_card_is_dropped_in_a_bulk_with_no_race():
+    runs = {"recent_runs": [{"date": iso(40), "distance_km": 21.2, "pace_label": "5:51/km"}]}
+    assert "running" not in cards_by_domain({**runs, "bulk": BULK})
+    assert "running" in cards_by_domain({**runs, "bulk": BULK, "race": {"name": "Spring Half", "days_remaining": 90}})
+    assert "running" in cards_by_domain(runs)
+
+
+def test_money_card_follows_the_paycheck_state():
+    current = {"remaining_den": 40000, "daily_allowance_den": 2500, "days_left": 16, "rank": "good"}
+    upcoming = {"date": "2026-11-04", "amount_den": 55500, "days_until": 23}
+
+    running_balance = cards_by_domain({"expenses_view": {"entry_count": 4, "paycheck": {"current": current, "next": None}}})["money"]
+    assert running_balance["value"] == "40,000" and running_balance["tab"] == "expenses"
+    assert "2,500 ден a day for 16 days" in running_balance["sub"]
+
+    spending = cards_by_domain({"expenses_view": {
+        "entry_count": 2, "week_total_den": 900, "month_total_den": 4200,
+        "paycheck": {"current": None, "next": upcoming},
+    }})["money"]
+    assert spending["value"] == "4,200" and "paycheck in 23 days" in spending["sub"]
+
+    countdown = cards_by_domain({"expenses_view": {"entry_count": 0, "paycheck": {"current": None, "next": upcoming}}})["money"]
+    assert countdown["value"] == 23 and countdown["unit"] == "days"
+
+    assert "money" not in cards_by_domain({})
+
+
+def test_bulk_warnings_surface_as_priorities_pointing_at_the_bulk_tab():
+    bulk = {**BULK, "findings": [
+        {"severity": "warn", "title": "The food log is empty", "detail": "...", "rank": "bad"},
+        {"severity": "good", "title": "Gaining on plan", "detail": "...", "rank": "good"},
+    ]}
+    priorities = build_overview({"bulk": bulk}, TODAY)["priorities"]
+    assert [(p["title"], p["tab"]) for p in priorities] == [("The food log is empty", "bulk")]

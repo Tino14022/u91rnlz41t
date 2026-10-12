@@ -156,16 +156,33 @@ def test_a_training_entry_without_a_type_is_rejected(tmp_path):
         run("trainings", {"date": "2026-08-16"}, tmp_path / "trainings.json")
 
 
-def test_gambling_allows_several_entries_per_day(tmp_path):
-    p = tmp_path / "gambling.json"
-    run("gambling", {"date": "2026-08-19", "amount_den": 200, "note": "poker"}, p)
-    run("gambling", {"date": "2026-08-19", "amount_den": 300, "note": "sports betting"}, p)
+def test_expenses_allow_several_entries_per_day(tmp_path):
+    p = tmp_path / "expenses.json"
+    run("expenses", {"date": "2026-10-13", "amount_den": 450, "category": "food", "note": "groceries"}, p)
+    run("expenses", {"date": "2026-10-13", "amount_den": 1800, "category": "gym"}, p)
     assert len(json.loads(p.read_text())) == 2
 
 
-def test_gambling_without_an_amount_is_rejected(tmp_path):
+def test_an_expense_without_an_amount_is_rejected(tmp_path):
     with pytest.raises(ValueError, match="missing required"):
-        run("gambling", {"date": "2026-08-19"}, tmp_path / "gambling.json")
+        run("expenses", {"date": "2026-10-13", "category": "food"}, tmp_path / "expenses.json")
+
+
+def test_an_expected_paycheck_can_be_logged_ahead_of_time(tmp_path):
+    p = tmp_path / "income.json"
+    run("income", {"date": "2026-11-04", "amount_den": 55500, "source": "paycheck"}, p)
+    assert json.loads(p.read_text()) == [{"date": "2026-11-04", "amount_den": 55500, "source": "paycheck"}]
+
+
+def test_gambling_is_no_longer_a_loggable_file():
+    assert "gambling" not in log_entry.ALLOWED
+    assert log_entry.main(["log_entry.py", "gambling"]) == 2
+
+
+def test_a_missed_creatine_day_can_be_logged(tmp_path):
+    p = tmp_path / "lifestyle.json"
+    run("lifestyle", {"date": "2026-10-20", "creatine": False}, p)
+    assert json.loads(p.read_text()) == [{"date": "2026-10-20", "creatine": False}]
 
 
 def test_non_ascii_notes_are_stored_readably(tmp_path):

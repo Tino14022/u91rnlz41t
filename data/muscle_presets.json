@@ -15,6 +15,7 @@
     "lower": {"quads": 0.9, "hamstrings": 0.8, "glutes": 0.8, "calves": 0.6, "lower_back": 0.3},
     "full_body": {"chest": 0.6, "lats": 0.6, "quads": 0.6, "hamstrings": 0.5, "glutes": 0.5, "biceps": 0.4, "triceps": 0.4, "abs": 0.5},
     "arms": {"biceps": 1.0, "triceps": 1.0, "forearms": 0.6},
+    "arms_shoulders": {"front_delts": 0.8, "side_delts": 0.9, "rear_delts": 0.6, "biceps": 1.0, "triceps": 1.0, "forearms": 0.6, "quads": 0.3, "hamstrings": 0.3, "calves": 0.3},
     "core": {"abs": 1.0, "obliques": 1.0, "lower_back": 0.3},
     "back": {"lats": 1.0, "upper_back": 0.8, "traps": 0.6, "lower_back": 0.4, "rear_delts": 0.3},
     "chest_tris": {"chest": 1.0, "triceps": 0.8, "front_delts": 0.5}

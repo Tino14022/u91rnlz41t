@@ -1,7 +1,11 @@
 """Configuration for the dashboard build.
 
 Everything the athlete might want to change lives here as data, so no other
-module needs editing to point the build at a different race, body, or timezone.
+module needs editing to point the build at a different goal, body, or timezone.
+
+The page follows whichever goals are set: a race brings the countdown and the
+Running tab, a fat-loss goal brings the cut panels, a bulk brings the Bulk tab.
+Leave one as None and its panels disappear rather than showing stale targets.
 """
 from __future__ import annotations
 
@@ -42,6 +46,34 @@ class FatLossGoal:
 
 
 @dataclass(frozen=True)
+class BulkGoal:
+    """A lean bulk: a small surplus over measured burn, not "eat everything".
+
+    Starting near 19% body fat, a large surplus mostly adds fat and buys a
+    longer cut afterwards. The surplus rides on the athlete's own trailing
+    burn, so the eating target follows what the watch measures.
+    """
+
+    start: date
+    end: date
+    target_gain_kg: float = 5.0
+    daily_surplus_kcal: int = 300
+    # Protein need per kg is a little lower in a surplus than in a cut, but the
+    # 2.0g/kg habit is already established and costs nothing to keep.
+    protein_g_per_kg: float = 2.0
+    # Weekly gain band. Below it the surplus is not landing; above it the
+    # extra is mostly fat.
+    weekly_gain_min_kg: float = 0.25
+    weekly_gain_max_kg: float = 0.5
+    # Past this the bulk has done its job and it is time to cut.
+    max_body_fat_pct: float = 21.0
+    creatine_start: date | None = None
+    creatine_dose_g: float = 5.0
+    # Without a loading phase, 3-5g a day saturates muscle in about four weeks.
+    creatine_saturation_days: int = 28
+
+
+@dataclass(frozen=True)
 class WindowConfig:
     """How far back each family of metrics is fetched, in weeks."""
 
@@ -54,10 +86,14 @@ class WindowConfig:
 
 @dataclass(frozen=True)
 class Settings:
-    race: RaceConfig
+    # None when no race is booked: the countdown, the long-run ladder and the
+    # Running tab all go with it.
+    race: RaceConfig | None
     athlete: AthleteConfig
     # Set to None to stop tracking a cut; the panel disappears with it.
     goal: FatLossGoal | None = field(default_factory=FatLossGoal)
+    # Set to track a bulk; the Bulk tab and the eating target appear with it.
+    bulk: BulkGoal | None = None
     windows: WindowConfig = field(default_factory=WindowConfig)
     # The build runs on a UTC CI runner; without this, "today" flips over at
     # 02:00 local in summer and the dashboard shows yesterday for two hours.
@@ -87,12 +123,16 @@ class Settings:
 
 
 DEFAULT_SETTINGS = Settings(
-    race=RaceConfig(
-        name="Wizz Air Half Marathon",
-        date=date(2026, 10, 4),
-        distance_km=21.1,
-    ),
+    # The Wizz Air Half Marathon (2026-10-04, 21.1km) is done; no race booked.
+    race=None,
     athlete=AthleteConfig(height_cm=192, weight_kg=95),
+    goal=None,
+    # Winter bulk, agreed 2026-10-12: no running, upper-body split, creatine.
+    bulk=BulkGoal(
+        start=date(2026, 10, 12),
+        end=date(2027, 3, 1),
+        creatine_start=date(2026, 10, 6),
+    ),
     # 2026-08-14: the day before the cut started, well above normal intake.
     # Kept in the log, just left out of the rolling average.
     excluded_nutrition_dates=frozenset({date(2026, 8, 14)}),

@@ -193,11 +193,18 @@ function fmtDate(iso){
 }
 
 // ---- Header ----
-el('daysNum').textContent = DATA.race.days_remaining;
-el('daysSub').textContent = 'days to go · ' + DATA.race.weeks_remaining + ' weeks';
-el('raceNameLine').innerHTML = '<b>' + DATA.race.name + '</b>';
-el('raceDateLine').textContent = new Date(DATA.race.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-el('raceDistLine').textContent = DATA.race.distance_km + ' km';
+// With no race booked there is nothing to count down to. The app shell hides
+// this whole tab then, but the script still runs, so it must not assume one.
+if(DATA.race){
+  el('daysNum').textContent = DATA.race.days_remaining;
+  el('daysSub').textContent = 'days to go · ' + DATA.race.weeks_remaining + ' weeks';
+  el('raceNameLine').innerHTML = '<b>' + DATA.race.name + '</b>';
+  el('raceDateLine').textContent = new Date(DATA.race.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  el('raceDistLine').textContent = DATA.race.distance_km + ' km';
+} else {
+  el('daysNum').textContent = '—';
+  el('daysSub').textContent = 'no race booked';
+}
 
 const predBox = el('predictionsBox');
 Object.entries(DATA.race_predictions || {}).forEach(([k,v]) => {

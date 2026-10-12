@@ -126,6 +126,17 @@ def build_rings(payload: dict, today: date) -> dict | None:
             "unit": "h", "pct": min(100, round(last["hours"] / need * 100)),
         })
 
+    # In a bulk the calories ring leads the food rings: eating enough is the
+    # habit that fails first.
+    eating = payload.get("eating_target") or {}
+    if eating.get("daily_target_kcal"):
+        target_kcal = eating["daily_target_kcal"]
+        eaten_kcal = eating.get("eaten_today_kcal") or 0
+        rings.append({
+            "key": "calories", "label": "Calories", "value": eaten_kcal, "target": target_kcal,
+            "unit": "kcal", "pct": min(100, round(eaten_kcal / target_kcal * 100)),
+        })
+
     protein_target = nv.get("protein_target_g")
     if protein_target:
         eaten = nv.get("today_protein_g") or 0
@@ -134,17 +145,26 @@ def build_rings(payload: dict, today: date) -> dict | None:
             "unit": "g", "pct": min(100, round(eaten / protein_target * 100)),
         })
 
-    # Training: sessions this week against a five-a-week habit.
-    sessions = (payload.get("training") or {}).get("sessions") or []
-    week_ago = today - timedelta(days=6)
-    this_week = len({
-        s["date"] for s in sessions
-        if parse_iso(s["date"]) and parse_iso(s["date"]) >= week_ago
-    })
-    rings.append({
-        "key": "training", "label": "Training days", "value": this_week, "target": 5,
-        "unit": "", "pct": min(100, round(this_week / 5 * 100)),
-    })
+    lifting = (payload.get("bulk") or {}).get("lifting") or {}
+    if lifting.get("planned"):
+        # A bulk counts the planned lifting days of the week, not any activity.
+        rings.append({
+            "key": "training", "label": "Lifting days", "value": lifting["done"],
+            "target": lifting["planned"], "unit": "",
+            "pct": min(100, round(lifting["done"] / lifting["planned"] * 100)),
+        })
+    else:
+        # Training: sessions this week against a five-a-week habit.
+        sessions = (payload.get("training") or {}).get("sessions") or []
+        week_ago = today - timedelta(days=6)
+        this_week = len({
+            s["date"] for s in sessions
+            if parse_iso(s["date"]) and parse_iso(s["date"]) >= week_ago
+        })
+        rings.append({
+            "key": "training", "label": "Training days", "value": this_week, "target": 5,
+            "unit": "", "pct": min(100, round(this_week / 5 * 100)),
+        })
 
     # Deficit adherence: how much of the target deficit is actually being run.
     fl = payload.get("fat_loss") or {}
@@ -178,7 +198,10 @@ def build_digest(payload: dict, today: date) -> dict | None:
     stats = [
         {"label": "Sessions", "value": len({s["date"] for s in sessions}), "unit": "days"},
         {"label": "Training time", "value": sum(s.get("duration_min") or 0 for s in sessions), "unit": "min"},
-        {"label": "Distance run", "value": round(sum(r.get("distance_km") or 0 for r in runs), 1), "unit": "km"},
+        # A lifting block has no distance to report; its count is the gym days.
+        {"label": "Lifting days", "value": len({s["date"] for s in sessions if s.get("type") == "gym"}), "unit": "days"}
+        if payload.get("bulk")
+        else {"label": "Distance run", "value": round(sum(r.get("distance_km") or 0 for r in runs), 1), "unit": "km"},
         {"label": "Avg sleep", "value": round(statistics.fmean([s["hours"] for s in sleep]), 1) if sleep else 0, "unit": "h"},
         {"label": "Days logged", "value": len(nutrition_days), "unit": "of 7"},
     ]

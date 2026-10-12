@@ -94,9 +94,14 @@ def build_readiness(payload: dict, today: date) -> dict | None:
         components.append(_component("soreness", sore_score, sore_detail))
 
     # --- Form (TSB): fresh is good, but very high means detrained ------------
+    # Garmin's load is driven by cardio. In a lifting block with no running it
+    # reads as permanently "detrained", which says nothing about readiness to
+    # lift, so the input is set aside rather than left to drag the score.
     load = _latest(payload.get("load_trend") or [])
     form_score, form_detail = None, "no training load data"
-    if load and load.get("tsb") is not None:
+    if payload.get("bulk"):
+        form_detail = "not used in a lifting block — it only tracks cardio load"
+    elif load and load.get("tsb") is not None:
         tsb = load["tsb"]
         # Peak readiness sits around +10; deeply negative is fatigue, very
         # positive is freshness bought with lost fitness.
@@ -192,9 +197,14 @@ def build_todays_call(payload: dict, readiness: dict | None, today: date) -> dic
     if race_plan.get("next_long_run_km") and verdict == "hard":
         reasons.append(f"the ladder wants a {race_plan['next_long_run_km']}km long run this week")
 
+    lifting_block = bool(payload.get("bulk"))
     detail = {
-        "hard": "Green light for a hard session — the long run or a heavy lift. This is the day to spend.",
-        "easy": "Train, but keep it genuinely easy. Conversational pace, or lift something that isn't sore.",
+        "hard": "Green light for a heavy session. Push the main lifts — this is the day to add the rep or the weight."
+        if lifting_block
+        else "Green light for a hard session — the long run or a heavy lift. This is the day to spend.",
+        "easy": "Train, but hold back: lighter weights, stop well short of failure, and skip whatever is still sore."
+        if lifting_block
+        else "Train, but keep it genuinely easy. Conversational pace, or lift something that isn't sore.",
         "rest": "Take the day. Not a walk-it-off day, an actual rest day — that is what turns training into fitness.",
     }[verdict]
 

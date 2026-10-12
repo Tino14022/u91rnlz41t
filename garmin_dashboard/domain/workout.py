@@ -13,9 +13,6 @@ from datetime import date
 
 from .formatting import iso
 
-CHECKLIST_KINDS = {"push", "pull", "legs"}
-
-
 def resolve_todays_workout(payload: dict, today: date, split: dict) -> dict:
     today_iso = iso(today)
 
@@ -34,8 +31,11 @@ def resolve_todays_workout(payload: dict, today: date, split: dict) -> dict:
     templates = split.get("templates") or {}
     template = templates.get(slot) or {}
 
-    if slot in CHECKLIST_KINDS:
-        exercises = list(template.get("exercises") or [])
+    # Any slot whose template lists exercises is a lifting day. Keying off the
+    # template rather than a fixed set of names lets the split be reshaped in
+    # data/training_split.json alone.
+    if template.get("exercises"):
+        exercises = list(template["exercises"])
         finisher_slot = "abs_finisher"
         if slot in (split.get("append_finisher_to") or []) and finisher_slot in templates:
             exercises = exercises + list(templates[finisher_slot].get("exercises") or [])

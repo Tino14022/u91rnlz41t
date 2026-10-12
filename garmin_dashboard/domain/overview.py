@@ -88,6 +88,10 @@ def _training_card(payload, today):
 
 
 def _running_card(payload, today):
+    # A lifting block with no race booked has no running to keep up with, and
+    # a card that only ever says "last run 40 days ago" is noise.
+    if payload.get("bulk") and not payload.get("race"):
+        return None
     runs = payload.get("recent_runs") or []
     plan = payload.get("race_plan") or {}
     if not runs:
@@ -177,8 +181,69 @@ def _goal_card(payload, today):
     )
 
 
+def _bulk_card(payload, today):
+    bulk = payload.get("bulk")
+    if not bulk:
+        return None
+    weight = bulk.get("weight")
+    sub = f"day {bulk['day_number']} of {bulk['total_days']}"
+    if not weight or weight.get("baseline_is_stale"):
+        return _card("bulk", "💪", "Bulk", "Weigh in", None,
+                     sub=sub + " · no start weight yet", status="warn", tab="bulk")
+    rate = weight.get("rate_kg_per_week")
+    if rate is not None:
+        sub += f" · {rate:+.2f} kg/week"
+    status = {"good": "good", "excellent": "good", "fair": "info"}.get(bulk.get("rank"), "warn")
+    return _card("bulk", "💪", "Bulk gain", f"{weight['gained_kg']:+.1f}", "kg",
+                 sub=sub + f" · target +{weight['target_gain_kg']:g} kg", status=status, tab="bulk")
+
+
+def _fuel_card(payload, today):
+    eating = payload.get("eating_target")
+    if not eating:
+        return None
+    left = eating["remaining_kcal"]
+    protein = ""
+    if eating.get("protein_target_g"):
+        protein = f" · protein {eating['protein_today_g']}/{eating['protein_target_g']}g"
+    if left <= 0:
+        return _card("fuel", "🍚", "Eating target", "Hit", None,
+                     sub=f"{eating['eaten_today_kcal']} of {eating['daily_target_kcal']} kcal" + protein,
+                     status="info" if eating.get("over") else "good", tab="nutrition")
+    return _card("fuel", "🍚", "Left to eat today", left, "kcal",
+                 sub=f"{eating['eaten_today_kcal']} of {eating['daily_target_kcal']} kcal" + protein,
+                 status="info", tab="nutrition")
+
+
+def _money_card(payload, today):
+    ev = payload.get("expenses_view")
+    if not ev:
+        return None
+    paycheck = ev.get("paycheck") or {}
+    current, upcoming = paycheck.get("current"), paycheck.get("next")
+    if current:
+        status = {"good": "good", "fair": "info"}.get(current["rank"], "warn")
+        return _card("money", "💸", "Left this paycheck", f"{current['remaining_den']:,}", "ден",
+                     sub=f"{current['daily_allowance_den']:,} ден a day for {current['days_left']} days",
+                     status=status, tab="expenses")
+    if ev.get("entry_count"):
+        sub = f"{ev['week_total_den']:,} ден this week"
+        if upcoming:
+            sub += f" · paycheck in {upcoming['days_until']} days"
+        return _card("money", "💸", "Spent this month", f"{ev['month_total_den']:,}", "ден",
+                     sub=sub, status="info", tab="expenses")
+    if upcoming:
+        due = parse_iso(upcoming["date"])
+        when = f"{due.day} {due:%b}" if due else upcoming["date"]
+        return _card("money", "💸", "Next paycheck", upcoming["days_until"], "days",
+                     sub=f"{upcoming['amount_den']:,} ден on {when}", status="info", tab="expenses")
+    return None
+
+
 CARD_BUILDERS = [
     _race_card,
+    _bulk_card,
+    _fuel_card,
     _goal_card,
     _sleep_card,
     _training_card,
@@ -186,6 +251,7 @@ CARD_BUILDERS = [
     _running_card,
     _nutrition_card,
     _body_card,
+    _money_card,
 ]
 
 
@@ -220,6 +286,9 @@ def build_overview(payload: dict, today: date) -> dict:
                 "confidence": f.get("confidence"),
                 "tab": "analysis",
             })
+    for f in (payload.get("bulk") or {}).get("findings", []):
+        if f["severity"] == "warn":
+            priorities.append({**f, "tab": "bulk"})
     for f in (payload.get("fat_loss") or {}).get("findings", []):
         if f["severity"] == "warn":
             priorities.append({**f, "tab": "body"})
@@ -242,5 +311,6 @@ def build_overview(payload: dict, today: date) -> dict:
             "protein_g": (payload.get("nutrition_view") or {}).get("today_protein_g"),
             "burn_kcal": (payload.get("nutrition_view") or {}).get("today_burn_so_far_kcal"),
             "protein_target_g": (payload.get("nutrition_view") or {}).get("protein_target_g"),
+            "kcal_target": (payload.get("eating_target") or {}).get("daily_target_kcal"),
         },
     }

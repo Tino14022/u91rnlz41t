@@ -1,63 +1,61 @@
 {
-  "_comment": "Standing weekly split, agreed 2026-08-17. weekday keys are Python weekday() ints: Mon=0..Sun=6. A workout_plan.json entry for today overrides this. See data/README.md.",
+  "_comment": "Winter-bulk weekly split, agreed 2026-10-12: upper body only, legs kept light, no running. weekday keys are Python weekday() ints: Mon=0..Sun=6. A workout_plan.json entry for today overrides this. See data/README.md.",
   "schedule": {
-    "0": "long_run",
-    "1": "push",
-    "2": "pull",
-    "3": "legs",
-    "4": "rest",
-    "5": "light_run",
-    "6": "bodyweight_circuit"
+    "0": "push",
+    "1": "pull",
+    "2": "arms_shoulders",
+    "3": "rest",
+    "4": "push",
+    "5": "pull",
+    "6": "rest"
   },
-  "append_finisher_to": ["push", "pull", "legs"],
+  "append_finisher_to": ["push", "pull"],
   "templates": {
     "push": {
-      "name": "Push Day",
+      "name": "Upper Push",
       "exercises": [
-        {"name": "Incline Dumbbell Bench Press", "target_sets": 4, "target_reps": "10"},
-        {"name": "Seated Dumbbell Shoulder Press", "target_sets": 3, "target_reps": "10"},
-        {"name": "Dumbbell Bench Press", "target_sets": 3, "target_reps": "12"},
-        {"name": "Suspension Chest Fly", "target_sets": 3, "target_reps": "15"},
-        {"name": "Dumbbell Lateral Raise", "target_sets": 4, "target_reps": "15"},
-        {"name": "Triceps Press-down", "target_sets": 3, "target_reps": "12"},
-        {"name": "Cable Overhead Triceps Extension", "target_sets": 3, "target_reps": "12"}
+        {"name": "Incline Dumbbell Bench Press", "target_sets": 4, "target_reps": "8-10"},
+        {"name": "Dumbbell Bench Press", "target_sets": 4, "target_reps": "8-10"},
+        {"name": "Cable or Suspension Chest Fly", "target_sets": 3, "target_reps": "12-15"},
+        {"name": "Dumbbell Lateral Raise", "target_sets": 3, "target_reps": "12-15"},
+        {"name": "Triceps Press-down", "target_sets": 3, "target_reps": "10-12"},
+        {"name": "Cable Overhead Triceps Extension", "target_sets": 3, "target_reps": "10-12"}
       ]
     },
     "pull": {
-      "name": "Pull Day",
+      "name": "Upper Pull",
       "exercises": [
-        {"name": "Lat Pull-down", "target_sets": 4, "target_reps": "10"},
-        {"name": "Seated Cable Row", "target_sets": 3, "target_reps": "10"},
+        {"name": "Lat Pull-down", "target_sets": 4, "target_reps": "8-10"},
+        {"name": "Seated Cable Row", "target_sets": 4, "target_reps": "8-10"},
         {"name": "Straight-arm Pull-down", "target_sets": 3, "target_reps": "12"},
-        {"name": "Incline Reverse Fly", "target_sets": 3, "target_reps": "15"},
-        {"name": "Dumbbell Shrug", "target_sets": 3, "target_reps": "15"},
-        {"name": "Static Back Extension", "target_sets": 3, "target_reps": "15"},
-        {"name": "Dumbbell Biceps Curl", "target_sets": 3, "target_reps": "12"},
-        {"name": "Hammer Curl", "target_sets": 3, "target_reps": "12"}
+        {"name": "Incline Reverse Fly", "target_sets": 3, "target_reps": "12-15"},
+        {"name": "Dumbbell Shrug", "target_sets": 3, "target_reps": "12-15"},
+        {"name": "Dumbbell Biceps Curl", "target_sets": 3, "target_reps": "10-12"},
+        {"name": "Hammer Curl", "target_sets": 3, "target_reps": "10-12"}
       ]
     },
-    "legs": {
-      "name": "Leg Day",
+    "arms_shoulders": {
+      "name": "Arms & Shoulders",
       "exercises": [
-        {"name": "Goblet Squat", "target_sets": 4, "target_reps": "10"},
-        {"name": "Leg Extension", "target_sets": 3, "target_reps": "15"},
-        {"name": "Leg Curl", "target_sets": 3, "target_reps": "12"},
-        {"name": "Romanian Deadlift", "target_sets": 3, "target_reps": "12"},
-        {"name": "Seated Calf Raise", "target_sets": 4, "target_reps": "20"}
+        {"name": "Seated Dumbbell Shoulder Press", "target_sets": 4, "target_reps": "8-10"},
+        {"name": "Dumbbell Lateral Raise", "target_sets": 4, "target_reps": "12-15"},
+        {"name": "Incline Reverse Fly", "target_sets": 3, "target_reps": "12-15"},
+        {"name": "EZ-Bar or Dumbbell Curl", "target_sets": 3, "target_reps": "8-10"},
+        {"name": "Incline Dumbbell Curl", "target_sets": 3, "target_reps": "10-12"},
+        {"name": "Triceps Press-down", "target_sets": 3, "target_reps": "10-12"},
+        {"name": "Cable Overhead Triceps Extension", "target_sets": 3, "target_reps": "10-12"},
+        {"name": "Goblet Squat (light legs)", "target_sets": 3, "target_reps": "12"},
+        {"name": "Leg Curl (light legs)", "target_sets": 3, "target_reps": "12"},
+        {"name": "Seated Calf Raise (light legs)", "target_sets": 3, "target_reps": "15"}
       ]
     },
     "abs_finisher": {
       "name": "Abs Finisher",
       "exercises": [
-        {"name": "Hanging Leg Raise", "target_sets": 5, "target_reps": "15"},
-        {"name": "Plank", "target_sets": 5, "target_reps": "90 sec"},
-        {"name": "Side Bend (weighted)", "target_sets": 5, "target_reps": "15"},
-        {"name": "Cable Crunch", "target_sets": 5, "target_reps": "15"}
+        {"name": "Hanging Leg Raise", "target_sets": 3, "target_reps": "15"},
+        {"name": "Cable Crunch", "target_sets": 3, "target_reps": "15"},
+        {"name": "Plank", "target_sets": 3, "target_reps": "60 sec"}
       ]
-    },
-    "bodyweight_circuit": {
-      "name": "Bodyweight Circuit",
-      "note": "Abs, push-ups, pull-ups, chin-ups. No fixed reps agreed yet — tell Claude what you did and it'll get logged same as any other session."
     }
   }
 }

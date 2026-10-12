@@ -16,6 +16,11 @@ EATING_BUDGET_WINDOW_DAYS = 28
 # Above this much over budget the day is no longer "a bit tight" — it is a
 # real overshoot worth flagging distinctly from a token few kcal.
 BUDGET_OVERSHOOT_KCAL = 150
+# In a bulk the miss that matters is under-eating; this far over the target is
+# flagged too, because past it the extra is fat rather than muscle.
+TARGET_OVERSHOOT_KCAL = 300
+# A day counts as having hit the eating target from this share of it upward.
+TARGET_HIT_RATIO = 0.95
 MEAL_ORDER = ["breakfast", "lunch", "dinner", "snack"]
 # Beyond roughly this much in one sitting, extra protein contributes little to
 # muscle protein synthesis — distribution matters, not just the daily total.
@@ -78,6 +83,31 @@ def build_macro_plate(payload: dict, today: date) -> dict | None:
     }
 
 
+def trailing_burn(
+    calorie_trend: list[dict], today: date, days: int = EATING_BUDGET_WINDOW_DAYS
+) -> tuple[float, list[float]] | None:
+    """Average total burn over the complete days before today, and those days.
+
+    Partial days are topped up the same way the nutrition view repairs them,
+    so a day the watch was off for does not drag the average down.
+    """
+    if not calorie_trend:
+        return None
+    typical_bmr = typical_daily_bmr(calorie_trend)
+    window_start = today - timedelta(days=days)
+    totals = []
+    for c in calorie_trend:
+        d = parse_iso(c.get("date"))
+        if d is None or d < window_start or d >= today:
+            continue
+        repaired = repair_day(c, typical_bmr)
+        if repaired is not None:
+            totals.append(repaired["total_kcal"])
+    if not totals:
+        return None
+    return statistics.fmean(totals), totals
+
+
 def build_eating_budget(
     payload: dict, today: date, goal, *, days: int = EATING_BUDGET_WINDOW_DAYS
 ) -> dict | None:
@@ -91,24 +121,10 @@ def build_eating_budget(
     """
     if goal is None:
         return None
-    calorie_trend = payload.get("calorie_trend") or []
-    if not calorie_trend:
+    benchmark = trailing_burn(payload.get("calorie_trend") or [], today, days)
+    if benchmark is None:
         return None
-
-    typical_bmr = typical_daily_bmr(calorie_trend)
-    window_start = today - timedelta(days=days)
-    totals = []
-    for c in calorie_trend:
-        d = parse_iso(c.get("date"))
-        if d is None or d < window_start or d >= today:
-            continue
-        repaired = repair_day(c, typical_bmr)
-        if repaired is not None:
-            totals.append(repaired["total_kcal"])
-    if not totals:
-        return None
-
-    benchmark_kcal = statistics.fmean(totals)
+    benchmark_kcal, totals = benchmark
     daily_deficit_kcal = round(goal.weekly_rate_kg * KCAL_PER_KG_FAT / 7)
     daily_budget_kcal = round(benchmark_kcal - daily_deficit_kcal)
 
@@ -137,6 +153,56 @@ def build_eating_budget(
         if daily_budget_kcal
         else None,
         "rank": rank,
+    }
+
+
+def build_eating_target(
+    payload: dict, today: date, bulk, *, days: int = EATING_BUDGET_WINDOW_DAYS
+) -> dict | None:
+    """How much there is still to eat today to hold the bulk's surplus.
+
+    The mirror image of the eating budget: same trailing-burn benchmark, but
+    the surplus is added and the number to watch is what is left to eat, not
+    what is left before going over.
+    """
+    if bulk is None:
+        return None
+    benchmark = trailing_burn(payload.get("calorie_trend") or [], today, days)
+    if benchmark is None:
+        return None
+    benchmark_kcal, totals = benchmark
+    # Rounded to the nearest 50: the benchmark moves a few kcal every day and a
+    # target that reads 3,137 one morning and 3,142 the next is noise.
+    daily_target_kcal = int(round((benchmark_kcal + bulk.daily_surplus_kcal) / 50) * 50)
+
+    nutrition_view = payload.get("nutrition_view") or {}
+    eaten_today_kcal = round(nutrition_view.get("today_intake_kcal") or 0)
+    remaining_kcal = daily_target_kcal - eaten_today_kcal
+    protein_target_g = nutrition_view.get("protein_target_g")
+    protein_today_g = round(nutrition_view.get("today_protein_g") or 0)
+
+    hit = eaten_today_kcal >= daily_target_kcal * TARGET_HIT_RATIO
+    over = eaten_today_kcal > daily_target_kcal + TARGET_OVERSHOOT_KCAL
+    return {
+        "benchmark_kcal": round(benchmark_kcal),
+        "benchmark_days": len(totals),
+        "benchmark_window_days": days,
+        "daily_surplus_kcal": bulk.daily_surplus_kcal,
+        "daily_target_kcal": daily_target_kcal,
+        "eaten_today_kcal": eaten_today_kcal,
+        "remaining_kcal": remaining_kcal,
+        "hit": hit,
+        "over": over,
+        "pct_eaten": round(min(eaten_today_kcal / daily_target_kcal, 1.5) * 100)
+        if daily_target_kcal
+        else None,
+        "protein_target_g": protein_target_g,
+        "protein_today_g": protein_today_g,
+        "protein_remaining_g": (protein_target_g - protein_today_g)
+        if protein_target_g
+        else None,
+        # The day is still open, so short of the target is not yet a failure.
+        "rank": rank_scale.FAIR if over or not hit else rank_scale.GOOD,
     }
 
 

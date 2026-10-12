@@ -79,3 +79,21 @@ def test_different_types_same_day_stay_separate():
     )
     assert len(view["sessions"]) == 2
     assert {s["type"] for s in view["sessions"]} == {"swim", "sup"}
+
+
+def test_the_two_templates_do_not_redefine_each_others_functions():
+    """Both templates end up in one <script>, where a later function
+    declaration silently replaces an earlier one of the same name. The Running
+    template's `tile()` once replaced a helper of the same name in the app
+    shell, and every tile built with it rendered as "[object Object]"."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    declared = lambda text: set(re.findall(r"^function\s+([A-Za-z_]\w*)", text, flags=re.M))  # noqa: E731
+    shell = declared((root / "app_template.html").read_text(encoding="utf-8"))
+    running = declared((root / "template.html").read_text(encoding="utf-8"))
+    # These two are the same one-liners in both files, kept so the Running
+    # template still works when opened on its own.
+    shared_on_purpose = {"el", "fmtDate"}
+    assert shell & running <= shared_on_purpose, sorted((shell & running) - shared_on_purpose)

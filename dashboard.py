@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["garminconnect>=0.2.29", "tzdata>=2024.1"]
 # ///
-"""Garmin half-marathon training dashboard.
+"""Garmin training dashboard (currently set up for a winter bulk).
 
 Run with:  uv run dashboard.py
 

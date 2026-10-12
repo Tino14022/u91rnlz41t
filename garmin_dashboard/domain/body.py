@@ -219,8 +219,8 @@ def _analyse(latest, previous, metrics, fat_mass, lean_mass, height_cm, entries)
             "severity": "info",
             "title": "What you are actually made of",
             "detail": (
-                f"{lean_mass}kg lean mass, {fat_mass}kg fat mass. Losing fat without losing the lean is the "
-                "whole game in a race build — that is what the protein target and the strength sessions are protecting."
+                f"{lean_mass}kg lean mass, {fat_mass}kg fat mass. Whichever way the scale is being pushed, the "
+                "lean number is the one to protect and grow — that is what the protein target and the lifting are for."
             ),
         })
 
@@ -278,9 +278,9 @@ def _analyse(latest, previous, metrics, fat_mass, lean_mass, height_cm, entries)
                 if dw > 0 and dmuscle > 0 and dbf <= 0:
                     verdict = "That is weight gained as muscle, not fat — the good version."
                 elif dw < 0 and dmuscle < 0:
-                    verdict = "Some of that loss was lean mass. Push protein and keep lifting through the build."
+                    verdict = "Some of that loss was lean mass. Push protein and keep lifting."
                 elif dw < 0 and dbf < 0:
-                    verdict = "Fat down with lean mass held — exactly what you want in a race build."
+                    verdict = "Fat down with lean mass held — the good version of losing weight."
                 else:
                     verdict = "Mixed movement; another reading or two will show the direction."
             else:

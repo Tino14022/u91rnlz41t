@@ -35,15 +35,17 @@ Only shown in the app when `date` matches the build date. Checklist progress liv
 The standing weekly split — a fixed rotation, not something re-asked each morning. Single object.
 ```json
 {
-  "schedule": {"0": "long_run", "1": "push", "2": "pull", "3": "legs", "4": "rest", "5": "light_run", "6": "bodyweight_circuit"},
-  "append_finisher_to": ["push", "pull", "legs"],
+  "schedule": {"0": "push", "1": "pull", "2": "arms_shoulders", "3": "rest", "4": "push", "5": "pull", "6": "rest"},
+  "append_finisher_to": ["push", "pull"],
   "templates": {
-    "push": {"name": "Push Day", "exercises": [{"name": "Incline Dumbbell Bench Press", "target_sets": 4, "target_reps": "10"}]},
-    "bodyweight_circuit": {"name": "Bodyweight Circuit", "note": "Freeform — no fixed reps agreed yet."}
+    "push": {"name": "Upper Push", "exercises": [{"name": "Incline Dumbbell Bench Press", "target_sets": 4, "target_reps": "8-10"}]},
+    "abs_finisher": {"name": "Abs Finisher", "exercises": [{"name": "Plank", "target_sets": 3, "target_reps": "60 sec"}]}
   }
 }
 ```
-`schedule` keys are Python `date.weekday()` ints (Mon=0..Sun=6). Each `templates` entry is either a checklist (`exercises`, same shape as `workout_plan.json`) or a plain `note` for a day with no fixed reps yet. `append_finisher_to` names which template slots get the `abs_finisher` template's exercises tacked onto the end. Edit this by hand (or ask Claude to) when the split itself changes — it's not something the daily check-ins write to.
+`schedule` keys are Python `date.weekday()` ints (Mon=0..Sun=6). A slot is a lifting day when its `templates` entry lists `exercises` (same shape as `workout_plan.json`) — the slot name itself is free, so a new session type needs no code change. A template with a plain `note` instead is a day with no fixed reps, `rest` is a rest day, and `long_run` / `light_run` are run days. `append_finisher_to` names which slots get the `abs_finisher` exercises tacked onto the end. Every lifting slot should also have a `gym_splits` entry of the same name in `muscle_presets.json`, so the session can be logged against muscle groups.
+
+The Bulk tab counts the week's planned lifting days from this file, and marks a day done when a gym session (Garmin-synced or logged) lands on it. Edit this by hand (or ask Claude to) when the split itself changes — it's not something the daily check-ins write to.
 
 ## race_plan_workouts.json
 The structured running sessions for the half-marathon build, pushed to Garmin Connect by `scripts/push_workouts_to_garmin.py`. Not read by the dashboard build — this file exists to drive the watch.
@@ -106,9 +108,38 @@ Factors that measurably affect sleep/recovery but aren't training or food.
   "alcohol_drinks": 0,           // count, null if not mentioned that day
   "cannabis_used": false,        // true/false/null
   "vacation": false,             // true if this day wasn't tracked because of travel/vacation
+  "creatine": false,             // only ever logged as false, for a day the dose was missed
   "notes": null
 }
 ```
 One entry per day. Cigarettes default to "usual" going forward once the user gives a baseline — only log a different level when they mention a day was notably different. Don't fabricate entries for days never mentioned; leave the day absent rather than guessing.
 
 `vacation: true` marks a day as deliberately untracked rather than missing — the Nutrition tab's calendar shows a distinct beach icon for these days instead of reading as a logging gap.
+
+`creatine: false` marks a missed dose. Creatine is assumed taken every day from the start date in `garmin_dashboard/config.py`, so only the misses are logged; each one pushes the "fully loaded" date on the Bulk tab back a day.
+
+## expenses.json
+Money out, in MKD denars.
+```json
+{
+  "date": "2026-10-13",
+  "amount_den": 450,
+  "category": "food",          // free text, lower-cased and merged on the page; "other" when omitted
+  "note": "groceries"          // optional
+}
+```
+Several entries per day are fine and are summed. A refund is a negative `amount_den`. Keep categories few and consistent (food, eating out, rent, bills, gym, supplements, transport, shopping, fun) — the "Where it went" bars are only useful if the same thing lands in the same bucket every time.
+
+## income.json
+Money in.
+```json
+{
+  "date": "2026-11-04",
+  "amount_den": 55500,
+  "source": "paycheck"
+}
+```
+An entry dated in the future is an *expected* paycheck: the Expenses tab counts down to it. Once its date arrives it becomes the current paycheck, and the tab shows what is left of it and what that allows per day until the next entry (or, with none on file, until the same day next month). Log the next paycheck ahead of time to keep that end date exact.
+
+## archive/
+Files no longer read by the build. `archive/gambling.json` is the log from the gambling tracker that the Expenses tab replaced in October 2026; it is kept for the record and nothing renders it.

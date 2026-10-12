@@ -1,22 +1,18 @@
-"""Shared fixtures.
+"""Shared fixtures: a fake Garmin API serving raw Garmin-shaped payloads, and a
+set of data files, so the whole build runs with no network and no credentials.
 
-`legacy_reference.py` is a byte-identical snapshot of dashboard.py from before
-the SOLID refactor. It is imported here only so the equivalence test can prove
-the refactor did not change any computed value. It imports garminconnect at
-module scope, which is not installed in the test environment, so a stub module
-is registered before import — nothing in the transforms actually calls it.
+Nothing under test imports `garminconnect` at module scope, so the suite runs
+without the package installed, which is how CI runs it.
 """
 from __future__ import annotations
 
 import sys
-import types
 from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.modules.setdefault("garminconnect", types.ModuleType("garminconnect"))
 
 ANCHOR = date(2026, 8, 14)
 

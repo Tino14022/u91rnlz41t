@@ -11,13 +11,15 @@ from datetime import date, datetime, timedelta, timezone
 from .config import Settings
 from .domain.benchmarks import build_benchmarks
 from .domain.body import build_body_view
+from .domain.bulk import build_bulk_view
+from .domain.expenses import build_expenses_view
 from .domain.formatting import iso
 from .domain.fuelling import (
     build_eating_budget,
+    build_eating_target,
     build_macro_plate,
     build_protein_distribution,
 )
-from .domain.gambling import build_gambling_view
 from .domain.goals import build_fat_loss_view
 from .domain.health import FetchLog
 from .domain.insights import build_insights
@@ -92,7 +94,8 @@ def build_payload(
     nutrition = store.load("nutrition", [])
     body_comp = store.load("body_comp", [])
     lifestyle = store.load("lifestyle", [])
-    gambling = store.load("gambling", [])
+    expenses = store.load("expenses", [])
+    income = store.load("income", [])
 
     workout_plan = store.load("workout_plan", None)
     if workout_plan and workout_plan.get("date") != iso(today):
@@ -101,12 +104,13 @@ def build_payload(
     training_split = store.load("training_split", {})
 
     # Cutting raises the protein target rather than lowering it — protein is what
-    # keeps the loss coming off as fat instead of muscle.
-    protein_g_per_kg = (
-        settings.goal.protein_g_per_kg
-        if settings.goal
-        else settings.athlete.protein_g_per_kg
-    )
+    # keeps the loss coming off as fat instead of muscle. A bulk sets its own.
+    if settings.goal:
+        protein_g_per_kg = settings.goal.protein_g_per_kg
+    elif settings.bulk:
+        protein_g_per_kg = settings.bulk.protein_g_per_kg
+    else:
+        protein_g_per_kg = settings.athlete.protein_g_per_kg
     nutrition_view = build_nutrition_view(
         nutrition,
         calorie_trend,
@@ -117,15 +121,28 @@ def build_payload(
         excluded_dates=settings.excluded_nutrition_dates,
     )
 
-    race_plan = build_race_plan(
-        runs,
-        today,
-        race_date=settings.race.date,
-        race_distance_km=settings.race.distance_km,
-        week_starts_on=settings.week_starts_on,
-    )
+    # No race booked means no countdown and no long-run ladder; both keys stay
+    # in the payload as None so the page can tell "no race" from "missing".
+    race = settings.race
+    race_plan = None
+    race_payload = None
+    if race:
+        race_plan = build_race_plan(
+            runs,
+            today,
+            race_date=race.date,
+            race_distance_km=race.distance_km,
+            week_starts_on=settings.week_starts_on,
+        )
+        days_remaining = (race.date - today).days
+        race_payload = {
+            "name": race.name,
+            "date": race.date.isoformat(),
+            "distance_km": race.distance_km,
+            "days_remaining": days_remaining,
+            "weeks_remaining": round(days_remaining / 7, 1),
+        }
 
-    days_remaining = (settings.race.date - today).days
     payload = {
         "generated_at": today.isoformat(),
         # Mon=0 .. Sun=6, so the calendars and the weekly buckets agree.
@@ -137,13 +154,7 @@ def build_payload(
         "generated_at_iso": generated_at_iso
         or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "athlete_name": source.athlete_name(),
-        "race": {
-            "name": settings.race.name,
-            "date": settings.race.date.isoformat(),
-            "distance_km": settings.race.distance_km,
-            "days_remaining": days_remaining,
-            "weeks_remaining": round(days_remaining / 7, 1),
-        },
+        "race": race_payload,
         "athlete": {
             "height_cm": settings.athlete.height_cm,
             "weight_kg": settings.athlete.weight_kg,
@@ -170,7 +181,8 @@ def build_payload(
         "workout_plan": workout_plan,
         "race_plan": race_plan,
         "build_health": log.to_payload(),
-        "gambling": gambling,
+        "expenses": expenses,
+        "income": income,
     }
 
     # These read the assembled payload rather than the raw sources, so they see
@@ -179,11 +191,19 @@ def build_payload(
         body_comp, height_cm=settings.athlete.height_cm, today=today
     )
     payload["fat_loss"] = build_fat_loss_view(
-        body_comp, nutrition_view, settings.goal, today, race_date=settings.race.date
+        body_comp, nutrition_view, settings.goal, today,
+        race_date=race.date if race else None,
     )
     payload["eating_budget"] = build_eating_budget(payload, today, settings.goal)
-    payload["gambling_view"] = build_gambling_view(
-        gambling, today, week_starts_on=settings.week_starts_on
+    # The bulk reads the eating target, and the insights read the bulk, so the
+    # order of these three matters.
+    payload["eating_target"] = build_eating_target(payload, today, settings.bulk)
+    payload["bulk"] = build_bulk_view(
+        payload, settings.bulk, today,
+        split=training_split, week_starts_on=settings.week_starts_on,
+    )
+    payload["expenses_view"] = build_expenses_view(
+        expenses, income, today, week_starts_on=settings.week_starts_on
     )
     payload["todays_workout"] = resolve_todays_workout(payload, today, training_split)
     payload["insights"] = build_insights(payload, today)

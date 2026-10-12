@@ -91,6 +91,7 @@ class Context:
         self.sessions = [s for s in (payload.get("training") or {}).get("sessions") or [] if s.get("date")]
         self.nutrition_view = payload.get("nutrition_view") or {}
         self.race_plan = payload.get("race_plan") or {}
+        self.bulking = bool(payload.get("bulk"))
         self.vo2max = payload.get("vo2max_trend") or []
 
         self.training_days = {s["date"] for s in self.sessions}
@@ -339,6 +340,8 @@ def fuelling_risk(ctx: Context):
     if balance is None or days < 2:
         return None
     weekly_km = sum(r.get("distance_km") or 0 for r in ctx.runs)
+    if ctx.bulking:
+        return _bulk_fuelling(balance, protein, target, days)
     if balance <= -500:
         severity, headline = "warn", f"Running a {abs(balance)} kcal/day deficit through a race build"
         detail = (
@@ -363,6 +366,42 @@ def fuelling_risk(ctx: Context):
         detail += (
             f" Protein is averaging {protein}g against a {target}g target ({pct}%)"
             + (", which is where it should be." if pct >= 85 else " — short, and that matters most while in a deficit.")
+        )
+    return finding("fuelling", ["nutrition", "training"], headline, detail, n=days, severity=severity)
+
+
+def _bulk_fuelling(balance, protein, target, days):
+    """The same energy balance, read for someone trying to gain."""
+    if balance <= -200:
+        severity, headline = "warn", f"Eating {abs(balance)} kcal/day under your burn — in a bulk"
+        detail = (
+            f"Across {days} compared days you averaged {abs(balance)} kcal/day below what the watch measured. "
+            "That is a deficit, the opposite of a bulk: there is nothing left over to build with."
+        )
+    elif balance < 150:
+        severity, headline = "info", "Eating at maintenance, not in a surplus"
+        detail = (
+            f"Averaging {balance:+} kcal/day against measured burn across {days} days. Maintenance holds what "
+            "you have; growing needs the surplus on top of it."
+        )
+    elif balance <= 600:
+        severity, headline = "good", f"Running a {balance} kcal/day surplus"
+        detail = (
+            f"Averaging {balance:+} kcal/day over measured burn across {days} days — the size of surplus a lean "
+            "bulk needs."
+        )
+    else:
+        severity, headline = "info", f"Surplus of {balance} kcal/day is more than a lean bulk needs"
+        detail = (
+            f"Averaging {balance:+} kcal/day over measured burn across {days} days. Muscle does not get built "
+            "faster past a few hundred kcal; the rest is stored as fat."
+        )
+    if protein is not None and target:
+        pct = round(protein / target * 100)
+        detail += (
+            f" Protein is averaging {protein}g against a {target}g target ({pct}%)"
+            + (", which is where it should be." if pct >= 85
+               else " — short, and protein is what turns the surplus into muscle.")
         )
     return finding("fuelling", ["nutrition", "training"], headline, detail, n=days, severity=severity)
 

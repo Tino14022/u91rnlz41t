@@ -86,3 +86,31 @@ def test_stale_workout_plan_for_a_different_date_does_not_override():
 def test_missing_schedule_entry_returns_none_kind_not_a_crash():
     result = resolve_todays_workout({}, MONDAY, {"schedule": {}, "templates": {}})
     assert result["kind"] == "none"
+
+
+BULK_SPLIT = {
+    "schedule": {"0": "push", "1": "pull", "2": "arms_shoulders", "3": "rest", "4": "push", "5": "pull", "6": "rest"},
+    "append_finisher_to": ["push", "pull"],
+    "templates": {
+        "push": {"name": "Upper Push", "exercises": [{"name": "Bench", "target_sets": 4, "target_reps": "8-10"}]},
+        "pull": {"name": "Upper Pull", "exercises": [{"name": "Row", "target_sets": 4, "target_reps": "8-10"}]},
+        "arms_shoulders": {"name": "Arms & Shoulders", "exercises": [{"name": "Curl", "target_sets": 3, "target_reps": "10"}]},
+        "abs_finisher": {"name": "Abs Finisher", "exercises": [{"name": "Plank", "target_sets": 3, "target_reps": "60 sec"}]},
+    },
+}
+
+
+def test_any_slot_with_exercises_is_a_checklist_whatever_it_is_called():
+    """The split is reshaped in data alone: a new session type must not need a
+    code change to show its checklist."""
+    result = resolve_todays_workout({}, date(2026, 10, 14), BULK_SPLIT)  # Wednesday
+    assert result["kind"] == "checklist"
+    assert result["name"] == "Arms & Shoulders"
+    assert [ex["name"] for ex in result["exercises"]] == ["Curl"]  # no finisher on this slot
+
+
+def test_the_same_template_serves_both_of_its_weekdays():
+    monday = resolve_todays_workout({}, date(2026, 10, 12), BULK_SPLIT)
+    friday = resolve_todays_workout({}, date(2026, 10, 16), BULK_SPLIT)
+    assert monday["name"] == friday["name"] == "Upper Push"
+    assert [ex["name"] for ex in monday["exercises"]] == ["Bench", "Plank"]
